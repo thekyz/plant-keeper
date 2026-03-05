@@ -39,10 +39,9 @@ SWIFTPM_PATH_STAMP := $(CURDIR)/.build/.workspace-path
 COVERAGE_BASELINE_MIN ?= 75
 COVERAGE_HOOK_MIN ?= 70
 COVERAGE_MIN ?= $(COVERAGE_BASELINE_MIN)
-COVERAGE_PROFILE := $(CURDIR)/.build/arm64-apple-macosx/debug/codecov/default.profdata
-COVERAGE_BINARY := $(CURDIR)/.build/arm64-apple-macosx/debug/PlantKeeperPackageTests.xctest/Contents/MacOS/PlantKeeperPackageTests
+COVERAGE_LCOV_FILE ?= $(CURDIR)/coverage/lcov.info
 
-.PHONY: build test run build-sim run-sim run-ios deploy prek-install prek-run doctor prepare-cache clean ios-resolve ios-setup coverage coverage-hook coverage-threshold-check validate-ios-plist
+.PHONY: build test run build-sim run-sim run-ios deploy prek-install prek-run doctor prepare-cache clean ios-resolve ios-setup coverage coverage-lcov coverage-hook coverage-threshold-check validate-ios-plist
 
 prepare-cache:
 	@mkdir -p "$(LOCAL_HOME)/Library/Caches" "$(CLANG_CACHE)" "$(PREK_HOME)"
@@ -73,7 +72,13 @@ coverage-threshold-check:
 
 coverage: coverage-threshold-check prepare-cache
 	$(BUILD_ENV) $(SWIFT) test --enable-code-coverage
-	@report="$$(DEVELOPER_DIR="$(DEVELOPER_DIR)" xcrun llvm-cov report "$(COVERAGE_BINARY)" -instr-profile "$(COVERAGE_PROFILE)")"; \
+	@profile="$$(find "$(CURDIR)/.build" -type f -path '*/debug/codecov/default.profdata' | head -n1)"; \
+	binary="$$(find "$(CURDIR)/.build" -type f -path '*/debug/PlantKeeperPackageTests.xctest/Contents/MacOS/PlantKeeperPackageTests' | head -n1)"; \
+	if [ -z "$$profile" ] || [ -z "$$binary" ]; then \
+		echo "Failed to locate Swift coverage artifacts in .build."; \
+		exit 1; \
+	fi; \
+	report="$$(DEVELOPER_DIR="$(DEVELOPER_DIR)" xcrun llvm-cov report "$$binary" -instr-profile "$$profile")"; \
 	printf '%s\n' "$$report"; \
 	line_cov="$$(printf '%s\n' "$$report" | awk '/^TOTAL/ { gsub("%","",$$10); print $$10 }')"; \
 	if [ -z "$$line_cov" ]; then echo "Failed to extract TOTAL line coverage."; exit 1; fi; \
@@ -85,6 +90,24 @@ coverage: coverage-threshold-check prepare-cache
 			printf("Coverage check passed: %.2f%% >= %.2f%% minimum.\n", cov, min); \
 		} \
 	}'
+
+coverage-lcov: coverage
+	@set -e; \
+	profile="$$(find "$(CURDIR)/.build" -type f -path '*/debug/codecov/default.profdata' | head -n1)"; \
+	binary="$$(find "$(CURDIR)/.build" -type f -path '*/debug/PlantKeeperPackageTests.xctest/Contents/MacOS/PlantKeeperPackageTests' | head -n1)"; \
+	if [ -z "$$profile" ] || [ -z "$$binary" ]; then \
+		echo "Failed to locate Swift coverage artifacts in .build."; \
+		exit 1; \
+	fi; \
+	mkdir -p "$$(dirname "$(COVERAGE_LCOV_FILE)")"; \
+	repo_root="$$(pwd)"; \
+	DEVELOPER_DIR="$(DEVELOPER_DIR)" xcrun llvm-cov export -format=lcov "$$binary" -instr-profile "$$profile" | \
+		sed "s#^SF:$$repo_root/#SF:#" > "$(COVERAGE_LCOV_FILE)"; \
+	if [ ! -s "$(COVERAGE_LCOV_FILE)" ]; then \
+		echo "LCOV export failed: $(COVERAGE_LCOV_FILE) is empty."; \
+		exit 1; \
+	fi; \
+	echo "Wrote LCOV coverage report to $(COVERAGE_LCOV_FILE)."
 
 coverage-hook: coverage-threshold-check
 	@$(MAKE) coverage COVERAGE_MIN="$(COVERAGE_HOOK_MIN)"

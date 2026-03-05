@@ -43,6 +43,7 @@ Plant Keeper is a SwiftUI iOS app scaffold for tracking plants with urgency-base
 - `Makefile` includes `make build` and `make test` with repo-local cache/home paths for consistent local runs.
 - `Makefile` includes `make build-sim` to compile the iOS Simulator build without installing/launching.
 - `Makefile` includes `make coverage` to print Swift coverage and enforce the baseline threshold (`COVERAGE_BASELINE_MIN`, default `75`; exposed via `COVERAGE_MIN`).
+- `Makefile` includes `make coverage-lcov` to export `coverage/lcov.info` for CI integrations like Coveralls.
 - `Makefile` includes `make clean` to reset build caches/artifacts (useful after moving/renaming the project folder).
 - `Makefile` supports iPhone deploy config in a local `.env` file (created via `make ios-setup`).
 - `Makefile` includes `make run-sim` (build/install/launch on iOS Simulator), `make deploy` (build/package/install/launch on a connected iPhone), and `make run-ios` (deploy + open iPhone Mirroring app on macOS).
