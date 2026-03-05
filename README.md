@@ -1,5 +1,7 @@
 # Plant Keeper (iOS)
 
+[![Coverage Status](https://coveralls.io/repos/github/thekyz/plant-keeper/badge.svg?branch=main)](https://coveralls.io/github/thekyz/plant-keeper?branch=main)
+
 Plant Keeper is a SwiftUI iOS app scaffold for tracking plants with urgency-based sorting, fast watering actions, camera-first add flow, and dual-language (EN/FR) plant names.
 
 ## Compatibility
