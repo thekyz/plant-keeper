@@ -40,6 +40,10 @@ COVERAGE_BASELINE_MIN ?= 75
 COVERAGE_HOOK_MIN ?= 70
 COVERAGE_MIN ?= $(COVERAGE_BASELINE_MIN)
 COVERAGE_LCOV_FILE ?= $(CURDIR)/coverage/lcov.info
+COVERAGE_LCOV_MIN ?= 90
+# Exclude UI shell/runtime-only files from uploaded LCOV to keep Coveralls focused on
+# testable business logic paths.
+COVERAGE_LCOV_EXCLUDE_REGEX ?= ^(\\.build/|Sources/PlantKeeperApp/Views/|Sources/PlantKeeperApp/PlantKeeperApp\\.swift|Sources/PlantKeeperApp/Services/LocationService\\.swift)
 
 .PHONY: build test run build-sim run-sim run-ios deploy prek-install prek-run doctor prepare-cache clean ios-resolve ios-setup coverage coverage-lcov coverage-hook coverage-threshold-check validate-ios-plist
 
@@ -102,11 +106,29 @@ coverage-lcov: coverage
 	mkdir -p "$$(dirname "$(COVERAGE_LCOV_FILE)")"; \
 	repo_root="$$(pwd)"; \
 	DEVELOPER_DIR="$(DEVELOPER_DIR)" xcrun llvm-cov export -format=lcov "$$binary" -instr-profile "$$profile" | \
-		sed "s#^SF:$$repo_root/#SF:#" > "$(COVERAGE_LCOV_FILE)"; \
+		sed "s#^SF:$$repo_root/#SF:#" | \
+		awk -v exclude_re="$(COVERAGE_LCOV_EXCLUDE_REGEX)" '\
+			/^SF:/ { sf=substr($$0,4); drop=(sf ~ exclude_re) } \
+			{ if (!drop) print } \
+			/^end_of_record$$/ { drop=0 }\
+		' > "$(COVERAGE_LCOV_FILE)"; \
 	if [ ! -s "$(COVERAGE_LCOV_FILE)" ]; then \
 		echo "LCOV export failed: $(COVERAGE_LCOV_FILE) is empty."; \
 		exit 1; \
 	fi; \
+	lcov_line_cov="$$(awk 'BEGIN{tot=0;cov=0} /^DA:/{split($$0,a,":"); split(a[2],b,","); tot++; if ((b[2]+0) > 0) cov++} END{if (tot==0) print ""; else printf("%.2f", (100*cov)/tot)}' "$(COVERAGE_LCOV_FILE)")"; \
+	if [ -z "$$lcov_line_cov" ]; then \
+		echo "Failed to extract LCOV line coverage."; \
+		exit 1; \
+	fi; \
+	awk -v cov="$$lcov_line_cov" -v min="$(COVERAGE_LCOV_MIN)" 'BEGIN { \
+		if ((cov + 0) < (min + 0)) { \
+			printf("LCOV coverage check failed: %.2f%% < %.2f%% minimum.\n", cov, min); \
+			exit 1; \
+		} else { \
+			printf("LCOV coverage check passed: %.2f%% >= %.2f%% minimum.\n", cov, min); \
+		} \
+	}'; \
 	echo "Wrote LCOV coverage report to $(COVERAGE_LCOV_FILE)."
 
 coverage-hook: coverage-threshold-check
