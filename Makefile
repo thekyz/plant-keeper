@@ -36,11 +36,13 @@ DEVICE_SIGN_ENTITLEMENTS ?= $(DEVICE_RUN_DIR)/PlantKeeperApp.signing-entitlement
 BUILD_ENV := DEVELOPER_DIR="$(DEVELOPER_DIR)" HOME="$(LOCAL_HOME)" CLANG_MODULE_CACHE_PATH="$(CLANG_CACHE)" SWIFTPM_MODULECACHE_OVERRIDE="$(CLANG_CACHE)"
 CACHE_PATH_STAMP := $(CLANG_CACHE)/.workspace-path
 SWIFTPM_PATH_STAMP := $(CURDIR)/.build/.workspace-path
-COVERAGE_MIN ?= 70
+COVERAGE_BASELINE_MIN ?= 75
+COVERAGE_HOOK_MIN ?= 70
+COVERAGE_MIN ?= $(COVERAGE_BASELINE_MIN)
 COVERAGE_PROFILE := $(CURDIR)/.build/arm64-apple-macosx/debug/codecov/default.profdata
 COVERAGE_BINARY := $(CURDIR)/.build/arm64-apple-macosx/debug/PlantKeeperPackageTests.xctest/Contents/MacOS/PlantKeeperPackageTests
 
-.PHONY: build test run build-sim run-sim run-ios deploy prek-install prek-run doctor prepare-cache clean ios-resolve ios-setup coverage validate-ios-plist
+.PHONY: build test run build-sim run-sim run-ios deploy prek-install prek-run doctor prepare-cache clean ios-resolve ios-setup coverage coverage-hook coverage-threshold-check validate-ios-plist
 
 prepare-cache:
 	@mkdir -p "$(LOCAL_HOME)/Library/Caches" "$(CLANG_CACHE)" "$(PREK_HOME)"
@@ -61,7 +63,15 @@ build: prepare-cache
 test: prepare-cache
 	$(BUILD_ENV) $(SWIFT) test
 
-coverage: prepare-cache
+coverage-threshold-check:
+	@awk -v baseline="$(COVERAGE_BASELINE_MIN)" -v hook="$(COVERAGE_HOOK_MIN)" 'BEGIN { \
+		if ((baseline + 0) <= (hook + 0)) { \
+			printf("Coverage configuration invalid: baseline %.2f%% must be higher than hook %.2f%%.\n", baseline, hook); \
+			exit 1; \
+		} \
+	}'
+
+coverage: coverage-threshold-check prepare-cache
 	$(BUILD_ENV) $(SWIFT) test --enable-code-coverage
 	@report="$$(DEVELOPER_DIR="$(DEVELOPER_DIR)" xcrun llvm-cov report "$(COVERAGE_BINARY)" -instr-profile "$(COVERAGE_PROFILE)")"; \
 	printf '%s\n' "$$report"; \
@@ -75,6 +85,9 @@ coverage: prepare-cache
 			printf("Coverage check passed: %.2f%% >= %.2f%% minimum.\n", cov, min); \
 		} \
 	}'
+
+coverage-hook: coverage-threshold-check
+	@$(MAKE) coverage COVERAGE_MIN="$(COVERAGE_HOOK_MIN)"
 
 validate-ios-plist:
 	./scripts/validate-ios-plist.sh

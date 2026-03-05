@@ -16,7 +16,7 @@ repos:
         language: system
         pass_filenames: false
       - id: swift-coverage-min
-        name: swift coverage >= 70%
-        entry: make coverage COVERAGE_MIN=70
+        name: swift coverage hook >= 70%
+        entry: make coverage-hook
         language: system
         pass_filenames: false

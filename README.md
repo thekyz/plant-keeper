@@ -42,13 +42,13 @@ Plant Keeper is a SwiftUI iOS app scaffold for tracking plants with urgency-base
 - `PlantListViewModel` is intentionally UI-focused; business logic lives in use cases and core services.
 - `Makefile` includes `make build` and `make test` with repo-local cache/home paths for consistent local runs.
 - `Makefile` includes `make build-sim` to compile the iOS Simulator build without installing/launching.
-- `Makefile` includes `make coverage` to print Swift coverage and enforce a minimum threshold (`COVERAGE_MIN`, default `70`).
+- `Makefile` includes `make coverage` to print Swift coverage and enforce the baseline threshold (`COVERAGE_BASELINE_MIN`, default `75`; exposed via `COVERAGE_MIN`).
 - `Makefile` includes `make clean` to reset build caches/artifacts (useful after moving/renaming the project folder).
 - `Makefile` supports iPhone deploy config in a local `.env` file (created via `make ios-setup`).
 - `Makefile` includes `make run-sim` (build/install/launch on iOS Simulator), `make deploy` (build/package/install/launch on a connected iPhone), and `make run-ios` (deploy + open iPhone Mirroring app on macOS).
 - Place `logo.png` at the project root to have it displayed in-app and copied into simulator/device packaged app bundles.
 - `prek` is configured through `.pre-commit-config.yaml`; install hook with `make prek-install` and run manually with `make prek-run`.
-- `prek` includes local hooks for iOS plist validation (`make validate-ios-plist`) and coverage gate (`make coverage COVERAGE_MIN=70`).
+- `prek` includes local hooks for iOS plist validation (`make validate-ios-plist`) and a lighter coverage gate (`make coverage-hook`, `COVERAGE_HOOK_MIN` default `70`).
 - `make validate-ios-plist` verifies required iOS privacy keys are present and non-empty in both plist files and prevents template/static plist drift.
 - Use Xcode (iOS 17+) to run the app target and wire real provider integrations.
 
