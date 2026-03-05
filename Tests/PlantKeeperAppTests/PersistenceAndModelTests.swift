@@ -4,8 +4,22 @@ import SwiftData
 @testable import PlantKeeperCore
 
 final class PersistenceAndModelTests: XCTestCase {
-    func testAppSettingsEntityDefaults() {
-        let entity = AppSettingsEntity()
+    func testAppSettingsEntityDefaults() async throws {
+        let container = try TestFixture.makeInMemoryContainer()
+        let store = AppSettingsStore(modelContainer: container)
+
+        let initialCoordinates = try await store.homeCoordinates()
+        XCTAssertNil(initialCoordinates)
+        let digest = try await store.digestTime()
+        XCTAssertEqual(digest.hour, 9)
+        XCTAssertEqual(digest.minute, 0)
+
+        let context = ModelContext(container)
+        let settingsID = AppSettingsEntity.singletonID
+        let descriptor = FetchDescriptor<AppSettingsEntity>(
+            predicate: #Predicate { $0.id == settingsID }
+        )
+        let entity = try XCTUnwrap(context.fetch(descriptor).first)
 
         XCTAssertEqual(entity.id, AppSettingsEntity.singletonID)
         XCTAssertEqual(entity.homeLocationName, "Home")
