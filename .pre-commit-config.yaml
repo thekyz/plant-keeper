@@ -1,0 +1,22 @@
+repos:
+  - repo: "https://github.com/pre-commit/pre-commit-hooks"
+    rev: "v6.0.0"
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+      - id: mixed-line-ending
+  - repo: local
+    hooks:
+      - id: ios-plist-validate
+        name: iOS plist validation
+        entry: make validate-ios-plist
+        language: system
+        pass_filenames: false
+      - id: swift-coverage-min
+        name: swift coverage >= 70%
+        entry: make coverage COVERAGE_MIN=70
+        language: system
+        pass_filenames: false

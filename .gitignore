@@ -1,0 +1,15 @@
+.DS_Store
+.build/
+.swiftpm/
+Package.resolved
+.prek-cache/
+.local-home/
+.cache/
+.derivedData-sim/
+.derivedData-device/
+.derivedData-device-*/
+.run/
+.sim-app/
+.codex/
+.env
+.tmp/
