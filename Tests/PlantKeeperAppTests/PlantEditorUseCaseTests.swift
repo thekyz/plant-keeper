@@ -24,6 +24,7 @@ final class PlantEditorUseCaseTests: XCTestCase {
 
     func testMakeDraftCopiesPlantFields() async {
         let plant = TestFixture.makePlant(
+            photoIdentifier: "existing.jpg",
             nameEnglish: "Aloe",
             nameFrench: "Aloe Vera",
             isOutdoor: true,
@@ -36,6 +37,7 @@ final class PlantEditorUseCaseTests: XCTestCase {
 
         let draft = await useCase.makeDraft(from: plant)
 
+        XCTAssertEqual(draft.photoIdentifier, "existing.jpg")
         XCTAssertEqual(draft.nameEnglish, "Aloe")
         XCTAssertEqual(draft.nameFrench, "Aloe Vera")
         XCTAssertTrue(draft.isOutdoor)

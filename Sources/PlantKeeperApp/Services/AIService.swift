@@ -89,7 +89,8 @@ struct OnDevicePlantAnalyzer: PlantAnalyzing {
             confidence: 0.35,
             suggestedWateringIntervalDays: 7,
             suggestedCheckIntervalDays: 3,
-            careHints: ["Needs manual confirmation"]
+            careHints: ["Needs manual confirmation"],
+            identificationStatus: .placeholder
         )
     }
 }
@@ -150,7 +151,8 @@ struct CloudPlantAnalyzer: PlantAnalyzing {
             confidence: min(max(parsed.confidence, 0.0), 1.0),
             suggestedWateringIntervalDays: max(1, parsed.wateringIntervalDays),
             suggestedCheckIntervalDays: max(1, parsed.checkIntervalDays),
-            careHints: parsed.careHints
+            careHints: parsed.careHints,
+            identificationStatus: .identified
         )
     }
 }

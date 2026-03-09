@@ -1,5 +1,13 @@
 import SwiftUI
 
+#if os(iOS)
+import UIKit
+private typealias PlatformImage = UIImage
+#elseif os(macOS)
+import AppKit
+private typealias PlatformImage = NSImage
+#endif
+
 struct AddPlantFlowView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var viewModel: PlantListViewModel
@@ -12,17 +20,26 @@ struct AddPlantFlowView: View {
         NavigationStack {
             Form {
                 Section("Photo") {
-                    if viewModel.activeDraft.photoData != nil {
-                        Text("Photo captured")
-                    } else {
-                        Text("No photo selected")
-                            .foregroundStyle(.secondary)
+                    if let selectedPhotoImage {
+                        platformImageView(selectedPhotoImage)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 220)
+                            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                     }
+                    Text(photoStatusText)
+                        .foregroundStyle(selectedPhotoImage == nil ? .secondary : .primary)
                     if isAnalyzing {
                         ProgressView("Analyzing plant...")
                     }
+                    if let draftStatusMessage = viewModel.draftStatusMessage {
+                        Text(draftStatusMessage)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
 
-                    Button("Take Photo") { startPhotoCapture() }
+                    Button(photoButtonTitle) { startPhotoCapture() }
                 }
 
                 Section("Plant Names") {
@@ -41,7 +58,7 @@ struct AddPlantFlowView: View {
                         .frame(minHeight: 120)
                 }
             }
-            .navigationTitle("Add Plant")
+            .navigationTitle(isEditing ? "Edit Plant" : "Add Plant")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -53,7 +70,7 @@ struct AddPlantFlowView: View {
                     }
                 }
                 ToolbarItem {
-                    Button("Save") {
+                    Button(isEditing ? "Update" : "Save") {
                         Task { await viewModel.addPlantFromDraft() }
                     }
                     .disabled(viewModel.activeDraft.nameEnglish.isEmpty && viewModel.activeDraft.nameFrench.isEmpty)
@@ -97,12 +114,51 @@ struct AddPlantFlowView: View {
     }
 
     private func handleCapturedImageData(_ imageData: Data?) {
-        viewModel.activeDraft.photoData = imageData
         guard let imageData else { return }
+        viewModel.activeDraft.photoData = imageData
+        viewModel.activeDraft.photoIdentifier = nil
+        viewModel.draftStatusMessage = nil
         Task {
             isAnalyzing = true
             await viewModel.analyzePhotoAndPrefill(imageData)
             isAnalyzing = false
         }
+    }
+
+    private var isEditing: Bool {
+        viewModel.editingPlantID != nil
+    }
+
+    private var photoButtonTitle: String {
+        selectedPhotoImage == nil ? "Take Photo" : "Replace Photo"
+    }
+
+    private var photoStatusText: String {
+        selectedPhotoImage == nil ? "No photo selected" : "Photo selected"
+    }
+
+    private var selectedPhotoImage: PlatformImage? {
+        if let photoData = viewModel.activeDraft.photoData,
+           let image = PlatformImage(data: photoData) {
+            return image
+        }
+
+        guard
+            let photoURL = PlantPhotoStore.photoURL(for: viewModel.activeDraft.photoIdentifier),
+            FileManager.default.fileExists(atPath: photoURL.path)
+        else {
+            return nil
+        }
+
+        return PlatformImage(contentsOfFile: photoURL.path)
+    }
+
+    @ViewBuilder
+    private func platformImageView(_ image: PlatformImage) -> Image {
+        #if os(iOS)
+        Image(uiImage: image)
+        #else
+        Image(nsImage: image)
+        #endif
     }
 }

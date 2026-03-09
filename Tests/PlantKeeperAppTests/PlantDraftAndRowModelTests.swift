@@ -56,12 +56,14 @@ final class PlantDraftAndRowModelTests: XCTestCase {
         draft.checkIntervalDays = 4
         draft.notes = "Test note"
         draft.aiConfidence = 0.7
+        draft.photoIdentifier = "draft-photo.jpg"
 
         let record = draft.makeRecord(existingID: id, now: now)
 
         XCTAssertEqual(record.id, id)
         XCTAssertEqual(record.createdAt, now)
         XCTAssertEqual(record.updatedAt, now)
+        XCTAssertEqual(record.photoIdentifier, "draft-photo.jpg")
         XCTAssertEqual(record.nameEnglish, "Aloe")
         XCTAssertEqual(record.notes, "Test note")
         XCTAssertEqual(record.aiConfidence, 0.7)

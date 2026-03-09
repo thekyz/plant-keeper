@@ -33,6 +33,7 @@ actor PlantEditorUseCase {
 
     func makeDraft(from plant: PlantRecord) -> PlantDraft {
         var draft = PlantDraft()
+        draft.photoIdentifier = plant.photoIdentifier
         draft.nameEnglish = plant.nameEnglish
         draft.nameFrench = plant.nameFrench
         draft.isOutdoor = plant.isOutdoor

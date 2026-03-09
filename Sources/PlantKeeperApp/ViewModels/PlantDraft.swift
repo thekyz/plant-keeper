@@ -3,6 +3,7 @@ import PlantKeeperCore
 
 struct PlantDraft {
     var photoData: Data?
+    var photoIdentifier: String?
     var nameEnglish: String = ""
     var nameFrench: String = ""
     var isOutdoor: Bool = false
@@ -27,6 +28,7 @@ struct PlantDraft {
             id: existingID ?? UUID(),
             createdAt: now,
             updatedAt: now,
+            photoIdentifier: photoIdentifier,
             nameEnglish: nameEnglish,
             nameFrench: nameFrench,
             isOutdoor: isOutdoor,

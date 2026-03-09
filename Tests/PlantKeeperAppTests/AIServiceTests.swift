@@ -48,6 +48,7 @@ final class AIServiceTests: XCTestCase {
         XCTAssertEqual(result.nameFrench, "Plante inconnue")
         XCTAssertEqual(result.suggestedWateringIntervalDays, 7)
         XCTAssertEqual(result.suggestedCheckIntervalDays, 3)
+        XCTAssertEqual(result.identificationStatus, .placeholder)
     }
 
     func testCloudAnalyzerThrowsWhenKeyMissing() async {

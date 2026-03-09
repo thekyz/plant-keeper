@@ -1,5 +1,10 @@
 import Foundation
 
+public enum PlantIdentificationStatus: Equatable, Sendable {
+    case identified
+    case placeholder
+}
+
 public struct AIAnalysisResult: Equatable, Sendable {
     public var nameEnglish: String
     public var nameFrench: String
@@ -7,6 +12,11 @@ public struct AIAnalysisResult: Equatable, Sendable {
     public var suggestedWateringIntervalDays: Int
     public var suggestedCheckIntervalDays: Int
     public var careHints: [String]
+    public var identificationStatus: PlantIdentificationStatus
+
+    public var identifiesPlant: Bool {
+        identificationStatus == .identified
+    }
 
     public init(
         nameEnglish: String,
@@ -14,7 +24,8 @@ public struct AIAnalysisResult: Equatable, Sendable {
         confidence: Double,
         suggestedWateringIntervalDays: Int,
         suggestedCheckIntervalDays: Int,
-        careHints: [String]
+        careHints: [String],
+        identificationStatus: PlantIdentificationStatus = .identified
     ) {
         self.nameEnglish = nameEnglish
         self.nameFrench = nameFrench
@@ -22,6 +33,7 @@ public struct AIAnalysisResult: Equatable, Sendable {
         self.suggestedWateringIntervalDays = suggestedWateringIntervalDays
         self.suggestedCheckIntervalDays = suggestedCheckIntervalDays
         self.careHints = careHints
+        self.identificationStatus = identificationStatus
     }
 }
 

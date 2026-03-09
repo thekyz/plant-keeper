@@ -119,6 +119,31 @@ final class PlantListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.activeDraft.nameFrench, "Rose FR")
         XCTAssertEqual(viewModel.activeDraft.wateringIntervalDays, 4)
         XCTAssertEqual(viewModel.activeDraft.checkIntervalDays, 2)
+        XCTAssertNil(viewModel.draftStatusMessage)
+    }
+
+    @MainActor
+    func testAnalyzePhotoAndPrefillStoresNoticeForPlaceholderResult() async {
+        let result = AIAnalysisResult(
+            nameEnglish: "Unknown Plant",
+            nameFrench: "Plante inconnue",
+            confidence: 0.35,
+            suggestedWateringIntervalDays: 7,
+            suggestedCheckIntervalDays: 3,
+            careHints: ["Needs manual confirmation"],
+            identificationStatus: .placeholder
+        )
+        let viewModel = await TestFixture.makeViewModel(plants: [], analyzer: MockPlantAnalyzer(result: result))
+
+        await viewModel.analyzePhotoAndPrefill(Data([0x01]))
+
+        XCTAssertEqual(viewModel.activeDraft.nameEnglish, "")
+        XCTAssertEqual(viewModel.activeDraft.nameFrench, "")
+        XCTAssertEqual(viewModel.activeDraft.aiConfidence, 0.35)
+        XCTAssertEqual(
+            viewModel.draftStatusMessage,
+            "Photo saved, but plant identification needs an OpenAI API key in Settings."
+        )
     }
 
     @MainActor
@@ -216,7 +241,7 @@ final class PlantListViewModelTests: XCTestCase {
 
     @MainActor
     func testHandleOverflowActionVariants() async {
-        let plant = TestFixture.makePlant(id: UUID(), nameEnglish: "OverflowPlant")
+        let plant = TestFixture.makePlant(id: UUID(), photoIdentifier: "existing.jpg", nameEnglish: "OverflowPlant")
         let viewModel = await TestFixture.makeViewModel(plants: [plant])
         await viewModel.loadPlants()
 
@@ -237,6 +262,7 @@ final class PlantListViewModelTests: XCTestCase {
         await viewModel.handleOverflowAction(.edit, plantID: plant.id)
         XCTAssertEqual(viewModel.editingPlantID, plant.id)
         XCTAssertTrue(viewModel.isPresentingAddPlant)
+        XCTAssertEqual(viewModel.activeDraft.photoIdentifier, "existing.jpg")
 
         await viewModel.handleOverflowAction(.markChecked, plantID: plant.id)
         XCTAssertNil(viewModel.errorMessage)

@@ -79,6 +79,7 @@ final class PlantListViewModel: ObservableObject {
     @Published private(set) var rows: [PlantRowViewModel] = []
     @Published var isPresentingAddPlant = false
     @Published var activeDraft = PlantDraft()
+    @Published var draftStatusMessage: String?
     @Published var errorMessage: String?
     @Published var isPresentingSettings = false
     @Published var openAIKeyInput = ""
@@ -162,6 +163,7 @@ final class PlantListViewModel: ObservableObject {
         activeDraft = PlantDraft()
         editingPlantID = nil
         editingOriginalPlant = nil
+        draftStatusMessage = nil
         isPresentingAddPlant = true
     }
 
@@ -194,8 +196,15 @@ final class PlantListViewModel: ObservableObject {
     func analyzePhotoAndPrefill(_ data: Data) async {
         do {
             let result = try await plantEditorUseCase.analyzePhoto(data)
-            activeDraft.applyAI(result)
+            if result.identifiesPlant {
+                activeDraft.applyAI(result)
+                draftStatusMessage = nil
+            } else {
+                activeDraft.aiConfidence = result.confidence
+                draftStatusMessage = "Photo saved, but plant identification needs an OpenAI API key in Settings."
+            }
         } catch {
+            draftStatusMessage = nil
             errorMessage = "Photo captured, but AI analysis failed."
         }
     }
@@ -323,6 +332,7 @@ final class PlantListViewModel: ObservableObject {
                 editingPlantID = plantID
                 editingOriginalPlant = target.plant
                 activeDraft = await plantEditorUseCase.makeDraft(from: target.plant)
+                draftStatusMessage = nil
                 isPresentingAddPlant = true
             case .delete:
                 try await plantListUseCase.deletePlant(plantID: plantID)
@@ -345,6 +355,7 @@ final class PlantListViewModel: ObservableObject {
         activeDraft = PlantDraft()
         editingPlantID = nil
         editingOriginalPlant = nil
+        draftStatusMessage = nil
         isPresentingAddPlant = false
     }
 }
