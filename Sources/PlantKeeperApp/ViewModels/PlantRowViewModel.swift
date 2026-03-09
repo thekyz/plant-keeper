@@ -23,10 +23,12 @@ struct PlantRowViewModel: Identifiable {
         return "On Track"
     }
 
-    var nextDueText: String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .short
-        return formatter.localizedString(for: urgency.effectiveNextDueDate, relativeTo: Date())
+    var nextWaterText: String {
+        relativeText(for: plant.nextWaterDueAt)
+    }
+
+    var nextCheckText: String {
+        relativeText(for: plant.nextCheckDueAt)
     }
 
     var wateringLogs: [Date] {
@@ -37,5 +39,11 @@ struct PlantRowViewModel: Identifiable {
             return [lastWateredAt]
         }
         return []
+    }
+
+    private func relativeText(for date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .short
+        return formatter.localizedString(for: date, relativeTo: Date())
     }
 }

@@ -23,7 +23,7 @@ struct PlantRowView: View {
                 Text(row.displayName)
                     .font(.headline)
                     .lineLimit(1)
-                Text("Next: \(row.nextDueText)")
+                Text("Water: \(row.nextWaterText) | Check: \(row.nextCheckText)")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 Text(row.urgencyBadge)

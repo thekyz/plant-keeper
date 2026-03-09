@@ -89,7 +89,8 @@ final class PlantDraftAndRowModelTests: XCTestCase {
 
     func testPlantRowViewModelComputesDisplayNameUrgencyAndLogs() {
         let now = Date()
-        let dueSoon = now.addingTimeInterval(3600)
+        let waterDue = now.addingTimeInterval(5 * 86_400)
+        let checkDue = now.addingTimeInterval(2 * 86_400)
         let older = now.addingTimeInterval(-8_000)
         let newer = now.addingTimeInterval(-4_000)
         let plant = TestFixture.makePlant(
@@ -97,16 +98,18 @@ final class PlantDraftAndRowModelTests: XCTestCase {
             nameFrench: "Ficus FR",
             wateringLogs: [WateringLog(timestamp: older), WateringLog(timestamp: newer)],
             lastWateredAt: newer,
-            nextWaterDueAt: dueSoon,
-            nextCheckDueAt: dueSoon
+            nextWaterDueAt: waterDue,
+            nextCheckDueAt: checkDue
         )
         let urgency = UrgencyEngine().score(for: plant, now: now)
         let row = PlantRowViewModel(plant: plant, urgency: urgency)
 
         XCTAssertEqual(row.displayName, "Ficus FR")
-        XCTAssertEqual(row.urgencyBadge, "Due Soon")
+        XCTAssertEqual(row.urgencyBadge, "On Track")
         XCTAssertEqual(row.wateringLogs, [newer, older])
-        XCTAssertFalse(row.nextDueText.isEmpty)
+        XCTAssertFalse(row.nextWaterText.isEmpty)
+        XCTAssertFalse(row.nextCheckText.isEmpty)
+        XCTAssertNotEqual(row.nextWaterText, row.nextCheckText)
     }
 
     func testPlantRowViewModelHandlesFallbackWateringLogAndOverdueBadge() {

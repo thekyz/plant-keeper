@@ -74,6 +74,36 @@ final class PlantServiceTests: XCTestCase {
         XCTAssertEqual(saved?.wateringLogs.map(\.timestamp), [now, yesterday])
     }
 
+    func testAddRetroactiveWateringWithoutExistingLogsRecomputesNextWaterFromLoggedDate() async throws {
+        let now = Date(timeIntervalSince1970: 1_000_000)
+        let twoDaysAgo = Calendar.current.date(byAdding: .day, value: -2, to: now) ?? now
+        let plant = PlantRecord(
+            nameEnglish: "Calathea",
+            nameFrench: "Calathea",
+            isOutdoor: false,
+            wateringIntervalDays: 7,
+            checkIntervalDays: 3,
+            nextWaterDueAt: Calendar.current.date(byAdding: .day, value: 7, to: now) ?? now,
+            nextCheckDueAt: Calendar.current.date(byAdding: .day, value: 3, to: now) ?? now
+        )
+        let store = InMemoryPlantStore(plants: [plant])
+        let service = PlantService(store: store)
+
+        try await service.addWateringLog(plantID: plant.id, at: twoDaysAgo, now: now)
+
+        let saved = try await store.plant(withID: plant.id)
+        XCTAssertEqual(saved?.lastWateredAt, twoDaysAgo)
+        XCTAssertEqual(saved?.wateringLogs.map(\.timestamp), [twoDaysAgo])
+        XCTAssertEqual(
+            saved?.nextWaterDueAt,
+            Calendar.current.date(byAdding: .day, value: 7, to: twoDaysAgo)
+        )
+        XCTAssertEqual(
+            saved?.nextCheckDueAt,
+            Calendar.current.date(byAdding: .day, value: 3, to: now)
+        )
+    }
+
     func testDeleteWateringLogRecomputesLastWateredAndDueDate() async throws {
         let now = Date(timeIntervalSince1970: 1_000_000)
         let oneDayAgo = Calendar.current.date(byAdding: .day, value: -1, to: now) ?? now
