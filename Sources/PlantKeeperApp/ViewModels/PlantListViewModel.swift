@@ -82,16 +82,27 @@ final class PlantListViewModel: ObservableObject {
     @Published var draftStatusMessage: String?
     @Published var errorMessage: String?
     @Published var isPresentingSettings = false
-    @Published var openAIKeyInput = ""
+    @Published var openAIKeyInput = "" {
+        didSet {
+            if openAIKeyInput != oldValue {
+                resetOpenAIKeyValidationState()
+            }
+        }
+    }
     @Published var homeLocationNameInput = "Home"
     @Published var homeLatitudeInput = ""
     @Published var homeLongitudeInput = ""
     @Published var isResolvingCurrentLocation = false
+    @Published private(set) var isValidatingOpenAIKey = false
+    @Published private(set) var openAIKeyValidationMessage: String?
+    @Published private(set) var isOpenAIKeyValidationSuccess = false
     @Published private(set) var editingPlantID: UUID?
     @Published var activeSheet: ActivePlantSheet?
     @Published var activeSnoozeDraft: SnoozeDraft?
 
     private var editingOriginalPlant: PlantRecord?
+    private var loadedOpenAIKey = ""
+    private var validatedOpenAIKey: String?
     private var didLoadSettings = false
     private var didConfigureNotifications = false
     private var didSeedSimulatorPlants = false
@@ -135,6 +146,14 @@ final class PlantListViewModel: ObservableObject {
     }
 
     func saveSettings() async {
+        let trimmedKey = openAIKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedKey.isEmpty,
+           trimmedKey != loadedOpenAIKey,
+           trimmedKey != validatedOpenAIKey {
+            let isValid = await validateOpenAIKey()
+            guard isValid else { return }
+        }
+
         do {
             let formData = SettingsFormData(
                 openAIKey: openAIKeyInput,
@@ -143,6 +162,7 @@ final class PlantListViewModel: ObservableObject {
                 homeLongitude: homeLongitudeInput
             )
             try await settingsUseCase.saveFormData(formData)
+            loadedOpenAIKey = trimmedKey
             isPresentingSettings = false
             await loadPlants()
         } catch {
@@ -156,6 +176,30 @@ final class PlantListViewModel: ObservableObject {
             isPresentingSettings = true
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+
+    var canValidateOpenAIKey: Bool {
+        !openAIKeyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    @discardableResult
+    func validateOpenAIKey() async -> Bool {
+        isValidatingOpenAIKey = true
+        errorMessage = nil
+        defer { isValidatingOpenAIKey = false }
+
+        do {
+            try await settingsUseCase.validateOpenAIKey(openAIKeyInput)
+            validatedOpenAIKey = openAIKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
+            openAIKeyValidationMessage = "OpenAI key looks valid."
+            isOpenAIKeyValidationSuccess = true
+            return true
+        } catch {
+            validatedOpenAIKey = nil
+            openAIKeyValidationMessage = error.localizedDescription
+            isOpenAIKeyValidationSuccess = false
+            return false
         }
     }
 
@@ -194,6 +238,7 @@ final class PlantListViewModel: ObservableObject {
     }
 
     func analyzePhotoAndPrefill(_ data: Data) async {
+        errorMessage = nil
         do {
             let result = try await plantEditorUseCase.analyzePhoto(data)
             if result.identifiesPlant {
@@ -206,6 +251,22 @@ final class PlantListViewModel: ObservableObject {
         } catch {
             draftStatusMessage = nil
             errorMessage = "Photo captured, but AI analysis failed."
+        }
+    }
+
+    func retryAIIdentification() async {
+        draftStatusMessage = nil
+        errorMessage = nil
+
+        do {
+            guard let photoData = try plantEditorUseCase.photoData(for: activeDraft) else {
+                draftStatusMessage = "Add a photo before retrying AI identification."
+                return
+            }
+
+            await analyzePhotoAndPrefill(photoData)
+        } catch {
+            errorMessage = "Couldn't load the saved photo for AI analysis."
         }
     }
 
@@ -349,6 +410,8 @@ final class PlantListViewModel: ObservableObject {
         homeLocationNameInput = formData.homeLocationName
         homeLatitudeInput = formData.homeLatitude
         homeLongitudeInput = formData.homeLongitude
+        loadedOpenAIKey = formData.openAIKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        resetOpenAIKeyValidationState()
     }
 
     private func resetDraftState() {
@@ -357,5 +420,11 @@ final class PlantListViewModel: ObservableObject {
         editingOriginalPlant = nil
         draftStatusMessage = nil
         isPresentingAddPlant = false
+    }
+
+    private func resetOpenAIKeyValidationState() {
+        validatedOpenAIKey = nil
+        openAIKeyValidationMessage = nil
+        isOpenAIKeyValidationSuccess = false
     }
 }

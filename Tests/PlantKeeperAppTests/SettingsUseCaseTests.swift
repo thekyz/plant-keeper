@@ -28,7 +28,11 @@ final class SettingsUseCaseTests: XCTestCase {
         )
         let keyStore = RecordingKeyStore()
         keyStore.loadedKey = "secret"
-        let useCase = SettingsUseCase(appSettingsStore: settingsStore, keyStore: keyStore)
+        let useCase = SettingsUseCase(
+            appSettingsStore: settingsStore,
+            keyStore: keyStore,
+            apiKeyValidator: MockOpenAIKeyValidator()
+        )
 
         let form = try await useCase.loadFormData()
 
@@ -41,7 +45,8 @@ final class SettingsUseCaseTests: XCTestCase {
     func testLoadFormDataFallsBackToDefaultHomeValues() async throws {
         let useCase = SettingsUseCase(
             appSettingsStore: MockAppSettingsStore(),
-            keyStore: RecordingKeyStore()
+            keyStore: RecordingKeyStore(),
+            apiKeyValidator: MockOpenAIKeyValidator()
         )
 
         let form = try await useCase.loadFormData()
@@ -54,7 +59,11 @@ final class SettingsUseCaseTests: XCTestCase {
     func testSaveFormDataSavesTrimmedKeyAndCoordinates() async throws {
         let settingsStore = MockAppSettingsStore()
         let keyStore = RecordingKeyStore()
-        let useCase = SettingsUseCase(appSettingsStore: settingsStore, keyStore: keyStore)
+        let useCase = SettingsUseCase(
+            appSettingsStore: settingsStore,
+            keyStore: keyStore,
+            apiKeyValidator: MockOpenAIKeyValidator()
+        )
 
         try await useCase.saveFormData(
             SettingsFormData(
@@ -75,7 +84,11 @@ final class SettingsUseCaseTests: XCTestCase {
     func testSaveFormDataUsesDefaultHomeNameWhenBlank() async throws {
         let settingsStore = MockAppSettingsStore()
         let keyStore = RecordingKeyStore()
-        let useCase = SettingsUseCase(appSettingsStore: settingsStore, keyStore: keyStore)
+        let useCase = SettingsUseCase(
+            appSettingsStore: settingsStore,
+            keyStore: keyStore,
+            apiKeyValidator: MockOpenAIKeyValidator()
+        )
 
         try await useCase.saveFormData(
             SettingsFormData(
@@ -96,7 +109,11 @@ final class SettingsUseCaseTests: XCTestCase {
         let settingsStore = MockAppSettingsStore()
         let keyStore = RecordingKeyStore()
         keyStore.saveResult = false
-        let useCase = SettingsUseCase(appSettingsStore: settingsStore, keyStore: keyStore)
+        let useCase = SettingsUseCase(
+            appSettingsStore: settingsStore,
+            keyStore: keyStore,
+            apiKeyValidator: MockOpenAIKeyValidator()
+        )
 
         do {
             try await useCase.saveFormData(
@@ -124,7 +141,11 @@ final class SettingsUseCaseTests: XCTestCase {
         let settingsStore = MockAppSettingsStore()
         let keyStore = RecordingKeyStore()
         keyStore.removeResult = false
-        let useCase = SettingsUseCase(appSettingsStore: settingsStore, keyStore: keyStore)
+        let useCase = SettingsUseCase(
+            appSettingsStore: settingsStore,
+            keyStore: keyStore,
+            apiKeyValidator: MockOpenAIKeyValidator()
+        )
 
         do {
             try await useCase.saveFormData(
@@ -148,5 +169,18 @@ final class SettingsUseCaseTests: XCTestCase {
         }
 
         XCTAssertTrue(keyStore.removeCalled)
+    }
+
+    func testValidateOpenAIKeyTrimsAndDelegatesToValidator() async throws {
+        let validator = MockOpenAIKeyValidator()
+        let useCase = SettingsUseCase(
+            appSettingsStore: MockAppSettingsStore(),
+            keyStore: RecordingKeyStore(),
+            apiKeyValidator: validator
+        )
+
+        try await useCase.validateOpenAIKey("  sk-test  ")
+
+        XCTAssertEqual(validator.validatedKeys, ["sk-test"])
     }
 }

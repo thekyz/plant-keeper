@@ -13,9 +13,10 @@ struct AppDependencies {
         let settingsStore = AppSettingsStore(modelContainer: container)
         let weatherService = PlantWeatherService(settingsStore: settingsStore)
         let keyStore = KeychainKeyStore()
+        let cloudAnalyzer = CloudPlantAnalyzer(keyStore: keyStore)
         let aiService = HybridAIService(
             onDevice: OnDevicePlantAnalyzer(),
-            cloud: CloudPlantAnalyzer(keyStore: keyStore),
+            cloud: cloudAnalyzer,
             keyStore: keyStore
         )
         let service = PlantService(
@@ -32,7 +33,11 @@ struct AppDependencies {
             appSettingsStore: settingsStore
         )
         let plantEditorUseCase = PlantEditorUseCase(repository: repository, aiService: aiService)
-        let settingsUseCase = SettingsUseCase(appSettingsStore: settingsStore, keyStore: keyStore)
+        let settingsUseCase = SettingsUseCase(
+            appSettingsStore: settingsStore,
+            keyStore: keyStore,
+            apiKeyValidator: cloudAnalyzer
+        )
         let locationService = DeviceLocationService()
 
         return AppDependencies(

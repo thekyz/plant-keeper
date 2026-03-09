@@ -24,10 +24,16 @@ enum SettingsUseCaseError: LocalizedError {
 actor SettingsUseCase {
     private let appSettingsStore: any AppSettingsStoring
     private let keyStore: APIKeyStoring
+    private let apiKeyValidator: any OpenAIKeyValidating
 
-    init(appSettingsStore: any AppSettingsStoring, keyStore: APIKeyStoring) {
+    init(
+        appSettingsStore: any AppSettingsStoring,
+        keyStore: APIKeyStoring,
+        apiKeyValidator: any OpenAIKeyValidating
+    ) {
         self.appSettingsStore = appSettingsStore
         self.keyStore = keyStore
+        self.apiKeyValidator = apiKeyValidator
     }
 
     func loadFormData() async throws -> SettingsFormData {
@@ -66,5 +72,9 @@ actor SettingsUseCase {
             latitude: Double(data.homeLatitude),
             longitude: Double(data.homeLongitude)
         )
+    }
+
+    func validateOpenAIKey(_ key: String) async throws {
+        try await apiKeyValidator.validateAPIKey(key.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 }

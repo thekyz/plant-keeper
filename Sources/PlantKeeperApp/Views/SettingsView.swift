@@ -9,6 +9,20 @@ struct SettingsView: View {
             Form {
                 Section("OpenAI") {
                     SecureField("OpenAI API key", text: $viewModel.openAIKeyInput)
+                    Button {
+                        Task { await viewModel.validateOpenAIKey() }
+                    } label: {
+                        Label("Check Key", systemImage: "checkmark.shield")
+                    }
+                    .disabled(viewModel.isValidatingOpenAIKey || !viewModel.canValidateOpenAIKey)
+                    if viewModel.isValidatingOpenAIKey {
+                        ProgressView("Checking key...")
+                    }
+                    if let validationMessage = viewModel.openAIKeyValidationMessage {
+                        Text(validationMessage)
+                            .font(.footnote)
+                            .foregroundStyle(viewModel.isOpenAIKeyValidationSuccess ? .green : .red)
+                    }
                     Text("Used for cloud fallback when on-device confidence is low.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)

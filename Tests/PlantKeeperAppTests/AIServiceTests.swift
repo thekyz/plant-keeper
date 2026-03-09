@@ -176,6 +176,65 @@ final class AIServiceTests: XCTestCase {
         XCTAssertEqual(result.careHints, ["sun", "water"])
     }
 
+    func testCloudAnalyzerValidateAPIKeySucceedsForSuccessStatus() async throws {
+        URLProtocolStub.requestHandler = { request in
+            XCTAssertEqual(request.httpMethod, "POST")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer valid-key")
+
+            let response = HTTPURLResponse(
+                url: request.url!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: nil
+            )!
+            return (response, Data(#"{"choices":[{"message":{"content":"{\"ok\":true}"}}]}"#.utf8))
+        }
+
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [URLProtocolStub.self]
+        let session = URLSession(configuration: config)
+        let analyzer = CloudPlantAnalyzer(
+            keyStore: MockAPIKeyStore(loadedKey: nil),
+            urlSession: session
+        )
+
+        try await analyzer.validateAPIKey(" valid-key ")
+    }
+
+    func testCloudAnalyzerValidateAPIKeyThrowsInvalidKeyForUnauthorizedStatus() async {
+        URLProtocolStub.requestHandler = { request in
+            let response = HTTPURLResponse(
+                url: request.url!,
+                statusCode: 401,
+                httpVersion: nil,
+                headerFields: nil
+            )!
+            return (response, Data(#"{"error":{"message":"Incorrect API key provided."}}"#.utf8))
+        }
+
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [URLProtocolStub.self]
+        let session = URLSession(configuration: config)
+        let analyzer = CloudPlantAnalyzer(
+            keyStore: MockAPIKeyStore(loadedKey: nil),
+            urlSession: session
+        )
+
+        do {
+            try await analyzer.validateAPIKey("bad-key")
+            XCTFail("Expected validation to fail.")
+        } catch let error as OpenAIKeyValidationError {
+            switch error {
+            case .invalidKey:
+                break
+            default:
+                XCTFail("Unexpected error: \(error)")
+            }
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
     func testHybridServiceReturnsOnDeviceWhenConfidenceHigh() async throws {
         let onDevice = ConstantAnalyzer(
             result: AIAnalysisResult(
@@ -279,6 +338,8 @@ final class AIServiceTests: XCTestCase {
         XCTAssertEqual(AIServiceError.missingAPIKey.errorDescription, "OpenAI API key is missing. Add it in Settings.")
         XCTAssertEqual(AIServiceError.invalidResponse.errorDescription, "AI service returned an invalid response.")
         XCTAssertEqual(AIServiceError.invalidPayload.errorDescription, "AI service returned an unreadable payload.")
+        XCTAssertEqual(OpenAIKeyValidationError.emptyKey.errorDescription, "Enter an OpenAI API key first.")
+        XCTAssertEqual(OpenAIKeyValidationError.invalidKey.errorDescription, "OpenAI rejected this API key. Check that it is correct.")
     }
 
 }

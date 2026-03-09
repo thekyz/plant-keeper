@@ -22,6 +22,31 @@ final class PlantEditorUseCaseTests: XCTestCase {
         XCTAssertEqual(result, expected)
     }
 
+    func testPhotoDataReturnsDraftPhotoDataFirst() throws {
+        let useCase = PlantEditorUseCase(repository: MockPlantStore(), aiService: MockPlantAnalyzer())
+        var draft = PlantDraft()
+        draft.photoData = Data([0x10, 0x20])
+
+        let result = try useCase.photoData(for: draft)
+
+        XCTAssertEqual(result, Data([0x10, 0x20]))
+    }
+
+    func testPhotoDataLoadsSavedPhotoDataWhenDraftOnlyHasIdentifier() throws {
+        let useCase = PlantEditorUseCase(repository: MockPlantStore(), aiService: MockPlantAnalyzer())
+        let plantID = UUID()
+        let savedIdentifier = try PlantPhotoStore.savePhotoData(Data([0x01, 0x02, 0x03]), for: plantID)
+        var draft = PlantDraft()
+        draft.photoIdentifier = savedIdentifier
+
+        let result = try useCase.photoData(for: draft)
+
+        XCTAssertEqual(result, Data([0x01, 0x02, 0x03]))
+        if let url = PlantPhotoStore.photoURL(for: savedIdentifier) {
+            try? FileManager.default.removeItem(at: url)
+        }
+    }
+
     func testMakeDraftCopiesPlantFields() async {
         let plant = TestFixture.makePlant(
             photoIdentifier: "existing.jpg",

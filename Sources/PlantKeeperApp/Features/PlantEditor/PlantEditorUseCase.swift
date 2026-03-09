@@ -31,6 +31,21 @@ actor PlantEditorUseCase {
         try await aiService.analyzePhotoData(data)
     }
 
+    nonisolated func photoData(for draft: PlantDraft) throws -> Data? {
+        if let photoData = draft.photoData {
+            return photoData
+        }
+
+        guard
+            let photoURL = PlantPhotoStore.photoURL(for: draft.photoIdentifier),
+            FileManager.default.fileExists(atPath: photoURL.path)
+        else {
+            return nil
+        }
+
+        return try Data(contentsOf: photoURL)
+    }
+
     func makeDraft(from plant: PlantRecord) -> PlantDraft {
         var draft = PlantDraft()
         draft.photoIdentifier = plant.photoIdentifier

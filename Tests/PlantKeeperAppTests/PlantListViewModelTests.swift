@@ -63,6 +63,21 @@ final class PlantListViewModelTests: XCTestCase {
     }
 
     @MainActor
+    func testValidateOpenAIKeyStoresSuccessMessage() async {
+        let validator = MockOpenAIKeyValidator()
+        let viewModel = await TestFixture.makeViewModel(plants: [], apiKeyValidator: validator)
+        viewModel.openAIKeyInput = " sk-test "
+
+        let isValid = await viewModel.validateOpenAIKey()
+
+        XCTAssertTrue(isValid)
+        XCTAssertEqual(validator.validatedKeys, ["sk-test"])
+        XCTAssertEqual(viewModel.openAIKeyValidationMessage, "OpenAI key looks valid.")
+        XCTAssertTrue(viewModel.isOpenAIKeyValidationSuccess)
+        XCTAssertFalse(viewModel.isValidatingOpenAIKey)
+    }
+
+    @MainActor
     func testStartAndCancelDraftResetPresentationState() async {
         let plant = TestFixture.makePlant(nameEnglish: "Existing")
         let viewModel = await TestFixture.makeViewModel(plants: [plant])
@@ -153,6 +168,31 @@ final class PlantListViewModelTests: XCTestCase {
         await viewModel.analyzePhotoAndPrefill(Data([0x01]))
 
         XCTAssertEqual(viewModel.errorMessage, "Photo captured, but AI analysis failed.")
+    }
+
+    @MainActor
+    func testRetryAIIdentificationUsesSavedPhotoIdentifier() async throws {
+        let savedIdentifier = try PlantPhotoStore.savePhotoData(Data([0xAA, 0xBB]), for: UUID())
+        let result = AIAnalysisResult(
+            nameEnglish: "Fern",
+            nameFrench: "Fougere",
+            confidence: 0.84,
+            suggestedWateringIntervalDays: 6,
+            suggestedCheckIntervalDays: 2,
+            careHints: []
+        )
+        let viewModel = await TestFixture.makeViewModel(plants: [], analyzer: MockPlantAnalyzer(result: result))
+        viewModel.activeDraft.photoIdentifier = savedIdentifier
+
+        await viewModel.retryAIIdentification()
+
+        XCTAssertEqual(viewModel.activeDraft.nameEnglish, "Fern")
+        XCTAssertEqual(viewModel.activeDraft.nameFrench, "Fougere")
+        XCTAssertEqual(viewModel.activeDraft.wateringIntervalDays, 6)
+        XCTAssertEqual(viewModel.activeDraft.checkIntervalDays, 2)
+        if let url = PlantPhotoStore.photoURL(for: savedIdentifier) {
+            try? FileManager.default.removeItem(at: url)
+        }
     }
 
     @MainActor
@@ -284,5 +324,24 @@ final class PlantListViewModelTests: XCTestCase {
 
         XCTAssertFalse(viewModel.isPresentingSettings)
         XCTAssertNotNil(viewModel.rows)
+    }
+
+    @MainActor
+    func testSaveSettingsKeepsSheetOpenWhenChangedKeyValidationFails() async {
+        struct ValidationFailed: LocalizedError {
+            var errorDescription: String? { "Invalid OpenAI key." }
+        }
+
+        let validator = MockOpenAIKeyValidator()
+        validator.result = .failure(ValidationFailed())
+        let viewModel = await TestFixture.makeViewModel(plants: [], apiKeyValidator: validator)
+        viewModel.isPresentingSettings = true
+        viewModel.openAIKeyInput = "bad-key"
+
+        await viewModel.saveSettings()
+
+        XCTAssertTrue(viewModel.isPresentingSettings)
+        XCTAssertEqual(viewModel.openAIKeyValidationMessage, "Invalid OpenAI key.")
+        XCTAssertFalse(viewModel.isOpenAIKeyValidationSuccess)
     }
 }

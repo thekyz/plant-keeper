@@ -95,6 +95,16 @@ struct MockAPIKeyStore: APIKeyStoring {
     func removeCloudAPIKey() -> Bool { removeResult }
 }
 
+final class MockOpenAIKeyValidator: @unchecked Sendable, OpenAIKeyValidating {
+    var result: Result<Void, Error> = .success(())
+    private(set) var validatedKeys: [String] = []
+
+    func validateAPIKey(_ key: String) async throws {
+        validatedKeys.append(key)
+        try result.get()
+    }
+}
+
 struct MockPlantAnalyzer: PlantAnalyzing {
     let result: AIAnalysisResult
 
@@ -194,7 +204,8 @@ enum TestFixture {
         analyzer: any PlantAnalyzing = MockPlantAnalyzer(),
         settingsStore: MockAppSettingsStore = MockAppSettingsStore(),
         notificationScheduler: MockNotificationScheduler = MockNotificationScheduler(),
-        locationService: DeviceLocationProviding = MockLocationService()
+        locationService: DeviceLocationProviding = MockLocationService(),
+        apiKeyValidator: MockOpenAIKeyValidator = MockOpenAIKeyValidator()
     ) async -> PlantListViewModel {
         let store = MockPlantStore(plants: plants)
         let plantService = PlantService(store: store)
@@ -205,7 +216,11 @@ enum TestFixture {
             appSettingsStore: settingsStore
         )
         let plantEditorUseCase = PlantEditorUseCase(repository: store, aiService: analyzer)
-        let settingsUseCase = SettingsUseCase(appSettingsStore: settingsStore, keyStore: MockAPIKeyStore())
+        let settingsUseCase = SettingsUseCase(
+            appSettingsStore: settingsStore,
+            keyStore: MockAPIKeyStore(),
+            apiKeyValidator: apiKeyValidator
+        )
 
         return PlantListViewModel(
             plantListUseCase: plantListUseCase,

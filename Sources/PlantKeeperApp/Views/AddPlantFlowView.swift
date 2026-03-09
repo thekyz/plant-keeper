@@ -40,6 +40,10 @@ struct AddPlantFlowView: View {
                     }
 
                     Button(photoButtonTitle) { startPhotoCapture() }
+                    if canRetryAIIdentification {
+                        Button("Retry AI ID") { retryAIIdentification() }
+                            .disabled(isAnalyzing)
+                    }
                 }
 
                 Section("Plant Names") {
@@ -125,12 +129,24 @@ struct AddPlantFlowView: View {
         }
     }
 
+    private func retryAIIdentification() {
+        Task {
+            isAnalyzing = true
+            await viewModel.retryAIIdentification()
+            isAnalyzing = false
+        }
+    }
+
     private var isEditing: Bool {
         viewModel.editingPlantID != nil
     }
 
     private var photoButtonTitle: String {
         selectedPhotoImage == nil ? "Take Photo" : "Replace Photo"
+    }
+
+    private var canRetryAIIdentification: Bool {
+        selectedPhotoImage != nil
     }
 
     private var photoStatusText: String {

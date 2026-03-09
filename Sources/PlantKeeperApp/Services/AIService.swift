@@ -19,10 +19,40 @@ enum AIServiceError: LocalizedError {
     }
 }
 
+enum OpenAIKeyValidationError: LocalizedError {
+    case emptyKey
+    case invalidKey
+    case forbidden
+    case rateLimited
+    case apiError(String)
+    case invalidResponse
+
+    var errorDescription: String? {
+        switch self {
+        case .emptyKey:
+            return "Enter an OpenAI API key first."
+        case .invalidKey:
+            return "OpenAI rejected this API key. Check that it is correct."
+        case .forbidden:
+            return "This API key cannot access the configured OpenAI model."
+        case .rateLimited:
+            return "OpenAI rate limited the validation request. Try again in a moment."
+        case .apiError(let message):
+            return message
+        case .invalidResponse:
+            return "OpenAI validation returned an invalid response."
+        }
+    }
+}
+
 protocol APIKeyStoring: Sendable {
     func loadCloudAPIKey() -> String?
     func saveCloudAPIKey(_ key: String) -> Bool
     func removeCloudAPIKey() -> Bool
+}
+
+protocol OpenAIKeyValidating: Sendable {
+    func validateAPIKey(_ key: String) async throws
 }
 
 struct KeychainKeyStore: APIKeyStoring {
@@ -95,7 +125,7 @@ struct OnDevicePlantAnalyzer: PlantAnalyzing {
     }
 }
 
-struct CloudPlantAnalyzer: PlantAnalyzing {
+struct CloudPlantAnalyzer: PlantAnalyzing, OpenAIKeyValidating {
     let keyStore: APIKeyStoring
     var model: String = "gpt-4.1-mini"
     var urlSession: URLSession = .shared
@@ -106,30 +136,27 @@ struct CloudPlantAnalyzer: PlantAnalyzing {
         }
 
         let dataURL = "data:image/jpeg;base64,\(data.base64EncodedString())"
-        let requestBody = OpenAIChatRequest(
-            model: model,
-            temperature: 0.2,
-            responseFormat: .init(type: "json_object"),
-            messages: [
-                .init(
-                    role: "system",
-                    content: .text("You analyze plant photos and return strict JSON only.")
-                ),
-                .init(
-                    role: "user",
-                    content: .multi([
-                        .init(type: "text", text: "Analyze this plant photo and return JSON with keys: english_name, french_name, confidence, watering_interval_days, check_interval_days, care_hints (array of strings)."),
-                        .init(type: "image_url", imageURL: .init(url: dataURL))
-                    ])
-                )
-            ]
+        let request = try makeRequest(
+            apiKey: apiKey,
+            body: OpenAIChatRequest(
+                model: model,
+                temperature: 0.2,
+                responseFormat: .init(type: "json_object"),
+                messages: [
+                    .init(
+                        role: "system",
+                        content: .text("You analyze plant photos and return strict JSON only.")
+                    ),
+                    .init(
+                        role: "user",
+                        content: .multi([
+                            .init(type: "text", text: "Analyze this plant photo and return JSON with keys: english_name, french_name, confidence, watering_interval_days, check_interval_days, care_hints (array of strings)."),
+                            .init(type: "image_url", imageURL: .init(url: dataURL))
+                        ])
+                    )
+                ]
+            )
         )
-
-        var request = URLRequest(url: URL(string: "https://api.openai.com/v1/chat/completions")!)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.httpBody = try JSONEncoder().encode(requestBody)
 
         let (responseData, response) = try await urlSession.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse,
@@ -155,6 +182,75 @@ struct CloudPlantAnalyzer: PlantAnalyzing {
             identificationStatus: .identified
         )
     }
+
+    func validateAPIKey(_ key: String) async throws {
+        let trimmedKey = key.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedKey.isEmpty else {
+            throw OpenAIKeyValidationError.emptyKey
+        }
+
+        let request = try makeRequest(
+            apiKey: trimmedKey,
+            body: OpenAIChatRequest(
+                model: model,
+                temperature: 0,
+                responseFormat: .init(type: "json_object"),
+                messages: [
+                    .init(
+                        role: "system",
+                        content: .text("Return strict JSON only.")
+                    ),
+                    .init(
+                        role: "user",
+                        content: .text("Return this exact JSON: {\"ok\":true}")
+                    )
+                ]
+            )
+        )
+
+        let (responseData, response) = try await urlSession.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw OpenAIKeyValidationError.invalidResponse
+        }
+
+        guard 200..<300 ~= httpResponse.statusCode else {
+            throw validationError(statusCode: httpResponse.statusCode, responseData: responseData)
+        }
+    }
+
+    private func makeRequest(apiKey: String, body: OpenAIChatRequest) throws -> URLRequest {
+        var request = URLRequest(url: URL(string: "https://api.openai.com/v1/chat/completions")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.httpBody = try JSONEncoder().encode(body)
+        return request
+    }
+}
+
+private func validationError(statusCode: Int, responseData: Data) -> OpenAIKeyValidationError {
+    let apiMessage = decodeOpenAIErrorMessage(from: responseData)
+
+    switch statusCode {
+    case 401:
+        return .invalidKey
+    case 403:
+        return .forbidden
+    case 429:
+        return .rateLimited
+    default:
+        if let apiMessage, !apiMessage.isEmpty {
+            return .apiError(apiMessage)
+        }
+        return .apiError("OpenAI validation failed with status \(statusCode).")
+    }
+}
+
+private func decodeOpenAIErrorMessage(from data: Data) -> String? {
+    guard let payload = try? JSONDecoder().decode(OpenAIErrorResponse.self, from: data) else {
+        return nil
+    }
+    return payload.error.message
 }
 
 private func normalizedJSONContent(_ content: String) -> String {
@@ -258,6 +354,14 @@ private struct OpenAIChatCompletionResponse: Decodable {
     }
 
     let choices: [Choice]
+}
+
+private struct OpenAIErrorResponse: Decodable {
+    struct Payload: Decodable {
+        let message: String
+    }
+
+    let error: Payload
 }
 
 private struct PlantExtractionPayload: Decodable {
