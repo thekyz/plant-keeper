@@ -102,7 +102,7 @@ final class PlantDraftAndRowModelTests: XCTestCase {
             nextCheckDueAt: checkDue
         )
         let urgency = UrgencyEngine().score(for: plant, now: now)
-        let row = PlantRowViewModel(plant: plant, urgency: urgency)
+        let row = PlantRowViewModel(plant: plant, urgency: urgency, preferredPlantNameLanguage: .english)
 
         XCTAssertEqual(row.displayName, "Ficus FR")
         XCTAssertEqual(row.urgencyBadge, "On Track")
@@ -121,9 +121,23 @@ final class PlantDraftAndRowModelTests: XCTestCase {
             nextCheckDueAt: now.addingTimeInterval(3600)
         )
         let urgency = UrgencyEngine().score(for: plant, now: now)
-        let row = PlantRowViewModel(plant: plant, urgency: urgency)
+        let row = PlantRowViewModel(plant: plant, urgency: urgency, preferredPlantNameLanguage: .english)
 
         XCTAssertEqual(row.urgencyBadge, "Overdue")
         XCTAssertEqual(row.wateringLogs, [lastWatered])
+    }
+
+    func testPlantRowViewModelUsesPreferredFrenchNameWhenAvailable() {
+        let now = Date()
+        let plant = TestFixture.makePlant(
+            nameEnglish: "Mint",
+            nameFrench: "Menthe",
+            nextWaterDueAt: now.addingTimeInterval(86_400),
+            nextCheckDueAt: now.addingTimeInterval(43_200)
+        )
+        let urgency = UrgencyEngine().score(for: plant, now: now)
+        let row = PlantRowViewModel(plant: plant, urgency: urgency, preferredPlantNameLanguage: .french)
+
+        XCTAssertEqual(row.displayName, "Menthe")
     }
 }

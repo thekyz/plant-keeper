@@ -5,6 +5,7 @@ struct SettingsFormData {
     var homeLocationName: String
     var homeLatitude: String
     var homeLongitude: String
+    var preferredPlantNameLanguage: PlantNameLanguage
 }
 
 enum SettingsUseCaseError: LocalizedError {
@@ -38,12 +39,14 @@ actor SettingsUseCase {
 
     func loadFormData() async throws -> SettingsFormData {
         let openAIKey = keyStore.loadCloudAPIKey() ?? ""
+        let preferredPlantNameLanguage = try await appSettingsStore.preferredPlantNameLanguage()
         if let home = try await appSettingsStore.homeCoordinates() {
             return SettingsFormData(
                 openAIKey: openAIKey,
                 homeLocationName: home.name,
                 homeLatitude: String(home.latitude),
-                homeLongitude: String(home.longitude)
+                homeLongitude: String(home.longitude),
+                preferredPlantNameLanguage: preferredPlantNameLanguage
             )
         }
 
@@ -51,7 +54,8 @@ actor SettingsUseCase {
             openAIKey: openAIKey,
             homeLocationName: "Home",
             homeLatitude: "",
-            homeLongitude: ""
+            homeLongitude: "",
+            preferredPlantNameLanguage: preferredPlantNameLanguage
         )
     }
 
@@ -72,6 +76,7 @@ actor SettingsUseCase {
             latitude: Double(data.homeLatitude),
             longitude: Double(data.homeLongitude)
         )
+        try await appSettingsStore.updatePreferredPlantNameLanguage(data.preferredPlantNameLanguage)
     }
 
     func validateOpenAIKey(_ key: String) async throws {

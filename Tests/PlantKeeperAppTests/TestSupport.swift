@@ -39,14 +39,18 @@ actor MockPlantStore: PlantStore {
 actor MockAppSettingsStore: AppSettingsStoring {
     var digest: (hour: Int, minute: Int)
     var coordinates: (name: String, latitude: Double, longitude: Double)?
+    var storedPreferredPlantNameLanguage: PlantNameLanguage
     private(set) var lastUpdatedHome: (name: String, latitude: Double?, longitude: Double?)?
+    private(set) var lastUpdatedPreferredPlantNameLanguage: PlantNameLanguage?
 
     init(
         digest: (hour: Int, minute: Int) = (9, 0),
-        coordinates: (name: String, latitude: Double, longitude: Double)? = nil
+        coordinates: (name: String, latitude: Double, longitude: Double)? = nil,
+        preferredPlantNameLanguage: PlantNameLanguage = .english
     ) {
         self.digest = digest
         self.coordinates = coordinates
+        self.storedPreferredPlantNameLanguage = preferredPlantNameLanguage
     }
 
     func updateHomeLocation(name: String, latitude: Double?, longitude: Double?) async throws {
@@ -64,6 +68,15 @@ actor MockAppSettingsStore: AppSettingsStoring {
 
     func digestTime() async throws -> (hour: Int, minute: Int) {
         digest
+    }
+
+    func updatePreferredPlantNameLanguage(_ language: PlantNameLanguage) async throws {
+        storedPreferredPlantNameLanguage = language
+        lastUpdatedPreferredPlantNameLanguage = language
+    }
+
+    func preferredPlantNameLanguage() async throws -> PlantNameLanguage {
+        storedPreferredPlantNameLanguage
     }
 }
 

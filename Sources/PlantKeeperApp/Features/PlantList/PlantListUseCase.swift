@@ -38,9 +38,13 @@ actor PlantListUseCase {
         #endif
     }
 
-    func loadRows(now: Date) async throws -> [PlantRowViewModel] {
+    func loadRows(now: Date, preferredPlantNameLanguage: PlantNameLanguage) async throws -> [PlantRowViewModel] {
         let plants = try await plantService.urgencySortedPlants(now: now)
-        let rows = try await buildRows(from: plants, now: now)
+        let rows = try await buildRows(
+            from: plants,
+            now: now,
+            preferredPlantNameLanguage: preferredPlantNameLanguage
+        )
         await notificationScheduler.refreshUrgencyNotifications(plants: plants, now: now)
         return rows
     }
@@ -102,13 +106,23 @@ actor PlantListUseCase {
         return "\(trimmedExisting)\n\n\(noteEntry)"
     }
 
-    private func buildRows(from plants: [PlantRecord], now: Date) async throws -> [PlantRowViewModel] {
+    private func buildRows(
+        from plants: [PlantRecord],
+        now: Date,
+        preferredPlantNameLanguage: PlantNameLanguage
+    ) async throws -> [PlantRowViewModel] {
         var builtRows: [PlantRowViewModel] = []
         builtRows.reserveCapacity(plants.count)
 
         for plant in plants {
             let urgency = try await plantService.recomputeUrgency(for: plant.id, now: now) ?? urgencyEngine.score(for: plant, now: now)
-            builtRows.append(PlantRowViewModel(plant: plant, urgency: urgency))
+            builtRows.append(
+                PlantRowViewModel(
+                    plant: plant,
+                    urgency: urgency,
+                    preferredPlantNameLanguage: preferredPlantNameLanguage
+                )
+            )
         }
 
         return builtRows

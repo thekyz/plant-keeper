@@ -85,7 +85,7 @@ final class PlantListUseCaseTests: XCTestCase {
             appSettingsStore: MockAppSettingsStore()
         )
 
-        let rows = try await useCase.loadRows(now: now)
+        let rows = try await useCase.loadRows(now: now, preferredPlantNameLanguage: .english)
 
         XCTAssertEqual(rows.count, 2)
         XCTAssertEqual(Set(rows.map(\.id)), Set([plantA.id, plantB.id]))

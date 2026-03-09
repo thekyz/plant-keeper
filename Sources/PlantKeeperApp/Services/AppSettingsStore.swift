@@ -5,13 +5,19 @@ protocol AppSettingsStoring: Sendable {
     func updateHomeLocation(name: String, latitude: Double?, longitude: Double?) async throws
     func homeCoordinates() async throws -> (name: String, latitude: Double, longitude: Double)?
     func digestTime() async throws -> (hour: Int, minute: Int)
+    func updatePreferredPlantNameLanguage(_ language: PlantNameLanguage) async throws
+    func preferredPlantNameLanguage() async throws -> PlantNameLanguage
 }
 
 actor AppSettingsStore {
-    private let modelContainer: ModelContainer
+    private static let preferredPlantNameLanguageKey = "preferredPlantNameLanguage"
 
-    init(modelContainer: ModelContainer) {
+    private let modelContainer: ModelContainer
+    private let userDefaults: UserDefaults
+
+    init(modelContainer: ModelContainer, userDefaults: UserDefaults = .standard) {
         self.modelContainer = modelContainer
+        self.userDefaults = userDefaults
     }
 
     private func loadOrCreate(in context: ModelContext) throws -> AppSettingsEntity {
@@ -52,6 +58,15 @@ actor AppSettingsStore {
         let context = ModelContext(modelContainer)
         let settings = try loadOrCreate(in: context)
         return (settings.dailyDigestHour, settings.dailyDigestMinute)
+    }
+
+    func updatePreferredPlantNameLanguage(_ language: PlantNameLanguage) async throws {
+        userDefaults.set(language.rawValue, forKey: Self.preferredPlantNameLanguageKey)
+    }
+
+    func preferredPlantNameLanguage() async throws -> PlantNameLanguage {
+        let rawValue = userDefaults.string(forKey: Self.preferredPlantNameLanguageKey)
+        return PlantNameLanguage(rawValue: rawValue ?? "") ?? .english
     }
 }
 

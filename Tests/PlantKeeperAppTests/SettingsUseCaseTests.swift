@@ -40,6 +40,7 @@ final class SettingsUseCaseTests: XCTestCase {
         XCTAssertEqual(form.homeLocationName, "Patio")
         XCTAssertEqual(form.homeLatitude, "50.5")
         XCTAssertEqual(form.homeLongitude, "4.2")
+        XCTAssertEqual(form.preferredPlantNameLanguage, .english)
     }
 
     func testLoadFormDataFallsBackToDefaultHomeValues() async throws {
@@ -54,6 +55,7 @@ final class SettingsUseCaseTests: XCTestCase {
         XCTAssertEqual(form.homeLocationName, "Home")
         XCTAssertEqual(form.homeLatitude, "")
         XCTAssertEqual(form.homeLongitude, "")
+        XCTAssertEqual(form.preferredPlantNameLanguage, .english)
     }
 
     func testSaveFormDataSavesTrimmedKeyAndCoordinates() async throws {
@@ -70,7 +72,8 @@ final class SettingsUseCaseTests: XCTestCase {
                 openAIKey: "  key-123  ",
                 homeLocationName: "  Garden  ",
                 homeLatitude: "50.12",
-                homeLongitude: "4.31"
+                homeLongitude: "4.31",
+                preferredPlantNameLanguage: .french
             )
         )
 
@@ -79,6 +82,8 @@ final class SettingsUseCaseTests: XCTestCase {
         XCTAssertEqual(updated?.name, "  Garden  ")
         XCTAssertEqual(updated?.latitude, 50.12)
         XCTAssertEqual(updated?.longitude, 4.31)
+        let updatedLanguage = await settingsStore.lastUpdatedPreferredPlantNameLanguage
+        XCTAssertEqual(updatedLanguage, .french)
     }
 
     func testSaveFormDataUsesDefaultHomeNameWhenBlank() async throws {
@@ -95,7 +100,8 @@ final class SettingsUseCaseTests: XCTestCase {
                 openAIKey: "key",
                 homeLocationName: "   ",
                 homeLatitude: "",
-                homeLongitude: ""
+                homeLongitude: "",
+                preferredPlantNameLanguage: .english
             )
         )
 
@@ -121,7 +127,8 @@ final class SettingsUseCaseTests: XCTestCase {
                     openAIKey: "key",
                     homeLocationName: "Home",
                     homeLatitude: "",
-                    homeLongitude: ""
+                    homeLongitude: "",
+                    preferredPlantNameLanguage: .english
                 )
             )
             XCTFail("Expected save to throw.")
@@ -153,7 +160,8 @@ final class SettingsUseCaseTests: XCTestCase {
                     openAIKey: "   ",
                     homeLocationName: "Home",
                     homeLatitude: "",
-                    homeLongitude: ""
+                    homeLongitude: "",
+                    preferredPlantNameLanguage: .english
                 )
             )
             XCTFail("Expected save to throw.")

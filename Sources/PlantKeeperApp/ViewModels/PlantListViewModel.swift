@@ -92,6 +92,7 @@ final class PlantListViewModel: ObservableObject {
     @Published var homeLocationNameInput = "Home"
     @Published var homeLatitudeInput = ""
     @Published var homeLongitudeInput = ""
+    @Published var preferredPlantNameLanguageInput: PlantNameLanguage = .english
     @Published var isResolvingCurrentLocation = false
     @Published private(set) var isValidatingOpenAIKey = false
     @Published private(set) var openAIKeyValidationMessage: String?
@@ -139,7 +140,10 @@ final class PlantListViewModel: ObservableObject {
                 try await plantListUseCase.seedSimulatorPlantsIfNeeded(now: Date())
                 didSeedSimulatorPlants = true
             }
-            rows = try await plantListUseCase.loadRows(now: Date())
+            rows = try await plantListUseCase.loadRows(
+                now: Date(),
+                preferredPlantNameLanguage: preferredPlantNameLanguageInput
+            )
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -159,7 +163,8 @@ final class PlantListViewModel: ObservableObject {
                 openAIKey: openAIKeyInput,
                 homeLocationName: homeLocationNameInput,
                 homeLatitude: homeLatitudeInput,
-                homeLongitude: homeLongitudeInput
+                homeLongitude: homeLongitudeInput,
+                preferredPlantNameLanguage: preferredPlantNameLanguageInput
             )
             try await settingsUseCase.saveFormData(formData)
             loadedOpenAIKey = trimmedKey
@@ -410,6 +415,7 @@ final class PlantListViewModel: ObservableObject {
         homeLocationNameInput = formData.homeLocationName
         homeLatitudeInput = formData.homeLatitude
         homeLongitudeInput = formData.homeLongitude
+        preferredPlantNameLanguageInput = formData.preferredPlantNameLanguage
         loadedOpenAIKey = formData.openAIKey.trimmingCharacters(in: .whitespacesAndNewlines)
         resetOpenAIKeyValidationState()
     }

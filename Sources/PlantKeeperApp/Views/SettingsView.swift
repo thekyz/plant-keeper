@@ -52,6 +52,18 @@ struct SettingsView: View {
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
+
+                Section("Plant Names") {
+                    Picker("Default display language", selection: $viewModel.preferredPlantNameLanguageInput) {
+                        ForEach(PlantNameLanguage.allCases, id: \.self) { language in
+                            Text(language.title).tag(language)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    Text("Choose whether the app shows English or French plant names first.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
             }
             .navigationTitle("Settings")
             #if os(iOS)

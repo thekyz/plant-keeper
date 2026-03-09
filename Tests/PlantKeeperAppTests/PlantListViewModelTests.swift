@@ -50,7 +50,8 @@ final class PlantListViewModelTests: XCTestCase {
     @MainActor
     func testPresentSettingsLoadsInputsAndShowsSheet() async {
         let settingsStore = MockAppSettingsStore(
-            coordinates: (name: "Yard", latitude: 50.01, longitude: 4.11)
+            coordinates: (name: "Yard", latitude: 50.01, longitude: 4.11),
+            preferredPlantNameLanguage: .french
         )
         let viewModel = await TestFixture.makeViewModel(plants: [], settingsStore: settingsStore)
 
@@ -60,6 +61,18 @@ final class PlantListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.homeLocationNameInput, "Yard")
         XCTAssertEqual(viewModel.homeLatitudeInput, "50.01")
         XCTAssertEqual(viewModel.homeLongitudeInput, "4.11")
+        XCTAssertEqual(viewModel.preferredPlantNameLanguageInput, .french)
+    }
+
+    @MainActor
+    func testLoadPlantsUsesPreferredPlantNameLanguage() async {
+        let plant = TestFixture.makePlant(nameEnglish: "Mint", nameFrench: "Menthe")
+        let settingsStore = MockAppSettingsStore(preferredPlantNameLanguage: .french)
+        let viewModel = await TestFixture.makeViewModel(plants: [plant], settingsStore: settingsStore)
+
+        await viewModel.loadPlants()
+
+        XCTAssertEqual(viewModel.rows.first?.displayName, "Menthe")
     }
 
     @MainActor

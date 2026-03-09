@@ -88,7 +88,12 @@ final class PersistenceAndModelTests: XCTestCase {
 
     func testAppSettingsStoreCRUD() async throws {
         let container = try TestFixture.makeInMemoryContainer()
-        let store = AppSettingsStore(modelContainer: container)
+        let defaultsSuiteName = "PersistenceAndModelTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: defaultsSuiteName))
+        let store = AppSettingsStore(modelContainer: container, userDefaults: defaults)
+        defer {
+            defaults.removePersistentDomain(forName: defaultsSuiteName)
+        }
 
         let initialCoordinates = try await store.homeCoordinates()
         XCTAssertNil(initialCoordinates)
@@ -97,11 +102,14 @@ final class PersistenceAndModelTests: XCTestCase {
         XCTAssertEqual(digest.minute, 0)
 
         try await store.updateHomeLocation(name: "Garden", latitude: 50.85, longitude: 4.35)
+        try await store.updatePreferredPlantNameLanguage(.french)
         let coords = try await store.homeCoordinates()
+        let preferredPlantNameLanguage = try await store.preferredPlantNameLanguage()
 
         XCTAssertEqual(coords?.name, "Garden")
         XCTAssertEqual(coords?.latitude, 50.85)
         XCTAssertEqual(coords?.longitude, 4.35)
+        XCTAssertEqual(preferredPlantNameLanguage, .french)
     }
 
     func testSwiftDataPlantRepositoryUpsertFetchAndDelete() async throws {
