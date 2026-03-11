@@ -136,6 +136,14 @@ struct CloudPlantAnalyzer: PlantAnalyzing, OpenAIKeyValidating {
         }
 
         let dataURL = "data:image/jpeg;base64,\(data.base64EncodedString())"
+        let analysisPrompt = """
+        Analyze this plant photo and return JSON with keys: english_name, french_name, confidence, watering_interval_days, check_interval_days, care_hints.
+        Use integer day counts for watering_interval_days and check_interval_days.
+        watering_interval_days is your best estimate for how many days should usually pass between waterings for this plant.
+        check_interval_days is your best estimate for how many days should pass before checking soil moisture or plant condition again.
+        Do not use generic defaults like 7 unless the plant genuinely fits that cadence.
+        care_hints must be an array of short, practical tips specific to this plant.
+        """
         let request = try makeRequest(
             apiKey: apiKey,
             body: OpenAIChatRequest(
@@ -145,12 +153,12 @@ struct CloudPlantAnalyzer: PlantAnalyzing, OpenAIKeyValidating {
                 messages: [
                     .init(
                         role: "system",
-                        content: .text("You analyze plant photos and return strict JSON only.")
+                        content: .text("You analyze plant photos, identify the plant, and return strict JSON only.")
                     ),
                     .init(
                         role: "user",
                         content: .multi([
-                            .init(type: "text", text: "Analyze this plant photo and return JSON with keys: english_name, french_name, confidence, watering_interval_days, check_interval_days, care_hints (array of strings)."),
+                            .init(type: "text", text: analysisPrompt),
                             .init(type: "image_url", imageURL: .init(url: dataURL))
                         ])
                     )

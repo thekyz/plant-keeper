@@ -10,6 +10,7 @@ struct PlantDraft {
     var wateringIntervalDays: Int = 7
     var checkIntervalDays: Int = 3
     var notes: String = ""
+    var aiCareHints: [String] = []
     var aiConfidence: Double?
 
     mutating func applyAI(_ result: AIAnalysisResult) {
@@ -17,6 +18,9 @@ struct PlantDraft {
         if nameFrench.isEmpty { nameFrench = result.nameFrench }
         wateringIntervalDays = result.suggestedWateringIntervalDays
         checkIntervalDays = result.suggestedCheckIntervalDays
+        aiCareHints = result.careHints
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
         aiConfidence = result.confidence
     }
 
@@ -37,6 +41,7 @@ struct PlantDraft {
             nextWaterDueAt: nextWater,
             nextCheckDueAt: nextCheck,
             notes: notes,
+            aiCareHints: aiCareHints,
             aiConfidence: aiConfidence
         )
     }

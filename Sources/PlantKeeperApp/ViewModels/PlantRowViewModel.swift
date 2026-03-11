@@ -47,6 +47,18 @@ struct PlantRowViewModel: Identifiable {
         relativeText(for: plant.nextCheckDueAt)
     }
 
+    var careRecommendationSummary: String? {
+        guard !plant.aiCareHints.isEmpty else { return nil }
+
+        let visibleHints = plant.aiCareHints.prefix(2)
+        var summary = visibleHints.joined(separator: " • ")
+        let remainingCount = plant.aiCareHints.count - visibleHints.count
+        if remainingCount > 0 {
+            summary += " +\(remainingCount) more"
+        }
+        return summary
+    }
+
     var wateringLogs: [Date] {
         if !plant.wateringLogs.isEmpty {
             return plant.wateringLogs.map(\.timestamp).sorted(by: >)

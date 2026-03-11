@@ -57,6 +57,19 @@ struct AddPlantFlowView: View {
                     Stepper("Check every \(viewModel.activeDraft.checkIntervalDays) day(s)", value: $viewModel.activeDraft.checkIntervalDays, in: 1...60)
                 }
 
+                if !viewModel.activeDraft.aiCareHints.isEmpty {
+                    Section("AI Care") {
+                        ForEach(Array(viewModel.activeDraft.aiCareHints.enumerated()), id: \.offset) { _, hint in
+                            HStack(alignment: .top, spacing: 8) {
+                                Image(systemName: "leaf.fill")
+                                    .foregroundStyle(.green)
+                                    .padding(.top, 2)
+                                Text(hint)
+                            }
+                        }
+                    }
+                }
+
                 Section("Notes") {
                     TextEditor(text: $viewModel.activeDraft.notes)
                         .frame(minHeight: 120)

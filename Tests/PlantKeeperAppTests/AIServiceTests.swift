@@ -33,6 +33,33 @@ private struct ConstantAnalyzer: PlantAnalyzing {
     func analyzePhotoData(_ data: Data) async throws -> AIAnalysisResult { result }
 }
 
+private func requestBodyData(from request: URLRequest) -> Data? {
+    if let body = request.httpBody {
+        return body
+    }
+
+    guard let stream = request.httpBodyStream else {
+        return nil
+    }
+
+    stream.open()
+    defer { stream.close() }
+
+    var data = Data()
+    var buffer = [UInt8](repeating: 0, count: 4096)
+    while stream.hasBytesAvailable {
+        let readCount = stream.read(&buffer, maxLength: buffer.count)
+        guard readCount >= 0 else {
+            return nil
+        }
+        if readCount == 0 {
+            break
+        }
+        data.append(buffer, count: readCount)
+    }
+    return data
+}
+
 final class AIServiceTests: XCTestCase {
     override func tearDown() {
         URLProtocolStub.requestHandler = nil
@@ -174,6 +201,36 @@ final class AIServiceTests: XCTestCase {
         XCTAssertEqual(result.suggestedWateringIntervalDays, 1)
         XCTAssertEqual(result.suggestedCheckIntervalDays, 1)
         XCTAssertEqual(result.careHints, ["sun", "water"])
+    }
+
+    func testCloudAnalyzerRequestAsksForSpecificCareIntervals() async throws {
+        let completion = """
+        {"choices":[{"message":{"content":"{\\"english_name\\":\\"Mint\\",\\"french_name\\":\\"Menthe\\",\\"confidence\\":0.8,\\"watering_interval_days\\":5,\\"check_interval_days\\":2,\\"care_hints\\":[\\"Bright indirect light\\"]}"}}]}
+        """
+        URLProtocolStub.requestHandler = { request in
+            let body = try XCTUnwrap(requestBodyData(from: request))
+            let bodyString = try XCTUnwrap(String(data: body, encoding: .utf8))
+            XCTAssertTrue(bodyString.contains("Do not use generic defaults like 7 unless the plant genuinely fits that cadence."))
+            XCTAssertTrue(bodyString.contains("care_hints must be an array of short, practical tips specific to this plant."))
+
+            let response = HTTPURLResponse(
+                url: request.url!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: nil
+            )!
+            return (response, Data(completion.utf8))
+        }
+
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [URLProtocolStub.self]
+        let session = URLSession(configuration: config)
+        let analyzer = CloudPlantAnalyzer(
+            keyStore: MockAPIKeyStore(loadedKey: "api-key"),
+            urlSession: session
+        )
+
+        _ = try await analyzer.analyzePhotoData(Data([0x01]))
     }
 
     func testCloudAnalyzerValidateAPIKeySucceedsForSuccessStatus() async throws {

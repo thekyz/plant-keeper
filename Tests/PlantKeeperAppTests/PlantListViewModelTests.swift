@@ -137,7 +137,7 @@ final class PlantListViewModelTests: XCTestCase {
             confidence: 0.8,
             suggestedWateringIntervalDays: 4,
             suggestedCheckIntervalDays: 2,
-            careHints: []
+            careHints: ["Keep in bright indirect light", "Water when top soil is dry"]
         )
         let viewModel = await TestFixture.makeViewModel(plants: [], analyzer: MockPlantAnalyzer(result: result))
 
@@ -147,6 +147,7 @@ final class PlantListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.activeDraft.nameFrench, "Rose FR")
         XCTAssertEqual(viewModel.activeDraft.wateringIntervalDays, 4)
         XCTAssertEqual(viewModel.activeDraft.checkIntervalDays, 2)
+        XCTAssertEqual(viewModel.activeDraft.aiCareHints, ["Keep in bright indirect light", "Water when top soil is dry"])
         XCTAssertNil(viewModel.draftStatusMessage)
     }
 
@@ -192,7 +193,7 @@ final class PlantListViewModelTests: XCTestCase {
             confidence: 0.84,
             suggestedWateringIntervalDays: 6,
             suggestedCheckIntervalDays: 2,
-            careHints: []
+            careHints: ["Keep soil lightly moist", "Avoid harsh midday sun"]
         )
         let viewModel = await TestFixture.makeViewModel(plants: [], analyzer: MockPlantAnalyzer(result: result))
         viewModel.activeDraft.photoIdentifier = savedIdentifier
@@ -203,6 +204,7 @@ final class PlantListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.activeDraft.nameFrench, "Fougere")
         XCTAssertEqual(viewModel.activeDraft.wateringIntervalDays, 6)
         XCTAssertEqual(viewModel.activeDraft.checkIntervalDays, 2)
+        XCTAssertEqual(viewModel.activeDraft.aiCareHints, ["Keep soil lightly moist", "Avoid harsh midday sun"])
         if let url = PlantPhotoStore.photoURL(for: savedIdentifier) {
             try? FileManager.default.removeItem(at: url)
         }

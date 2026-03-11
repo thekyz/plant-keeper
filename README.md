@@ -17,6 +17,7 @@ Plant Keeper is a SwiftUI iOS app scaffold for tracking plants with urgency-base
 - Inline per-row `...` overflow menu with `Mark Checked`, `Edit`, `Delete`.
 - `+` add flow with camera capture and editable review form.
 - Hybrid AI analysis path: on-device first, OpenAI cloud fallback using user API key from Keychain.
+- AI photo analysis can prefill watering/check intervals and visible care recommendations in the draft form.
 - SwiftData persistence models and repository.
 - CloudKit-enabled SwiftData model container configuration.
 - Settings screen for OpenAI API key and home outdoor coordinates.
@@ -40,6 +41,7 @@ Plant Keeper is a SwiftUI iOS app scaffold for tracking plants with urgency-base
 ## Notes
 
 - Cloud OpenAI and WeatherKit integrations are wired; on-device analyzer remains a baseline placeholder.
+- Cloud care hints are stored separately from plant notes and shown directly in the UI.
 - Keychain storage is implemented via `KeychainKeyStore`.
 - `PlantListViewModel` is intentionally UI-focused; business logic lives in use cases and core services.
 - `Makefile` includes `make build` and `make test` with repo-local cache/home paths for consistent local runs.

@@ -56,6 +56,7 @@ final class PlantEditorUseCaseTests: XCTestCase {
             wateringIntervalDays: 9,
             checkIntervalDays: 3,
             notes: "Needs sun",
+            aiCareHints: ["Water when soil is dry"],
             aiConfidence: 0.44
         )
         let useCase = PlantEditorUseCase(repository: MockPlantStore(), aiService: MockPlantAnalyzer())
@@ -69,6 +70,7 @@ final class PlantEditorUseCaseTests: XCTestCase {
         XCTAssertEqual(draft.wateringIntervalDays, 9)
         XCTAssertEqual(draft.checkIntervalDays, 3)
         XCTAssertEqual(draft.notes, "Needs sun")
+        XCTAssertEqual(draft.aiCareHints, ["Water when soil is dry"])
         XCTAssertEqual(draft.aiConfidence, 0.44)
     }
 
@@ -80,6 +82,7 @@ final class PlantEditorUseCaseTests: XCTestCase {
         draft.nameFrench = "Menthe"
         draft.wateringIntervalDays = 5
         draft.checkIntervalDays = 2
+        draft.aiCareHints = ["Keep near bright window"]
 
         try await useCase.saveDraft(draft, editingID: nil, original: nil)
 
@@ -89,6 +92,7 @@ final class PlantEditorUseCaseTests: XCTestCase {
         XCTAssertEqual(saved?.nameEnglish, "Mint")
         XCTAssertEqual(saved?.wateringIntervalDays, 5)
         XCTAssertEqual(saved?.checkIntervalDays, 2)
+        XCTAssertEqual(saved?.aiCareHints, ["Keep near bright window"])
     }
 
     func testSaveDraftEditingPreservesOriginalIdentityAndScheduleWhenIntervalsUnchanged() async throws {

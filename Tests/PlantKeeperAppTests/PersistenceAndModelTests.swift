@@ -35,7 +35,8 @@ final class PersistenceAndModelTests: XCTestCase {
         let record = TestFixture.makePlant(
             wateringLogs: [logA, logB],
             lastWateredAt: logB.timestamp,
-            notes: "notes"
+            notes: "notes",
+            aiCareHints: ["Hint A", "Hint B"]
         )
 
         let entity = PlantEntity(from: record)
@@ -45,6 +46,7 @@ final class PersistenceAndModelTests: XCTestCase {
         XCTAssertEqual(mapped.wateringLogs, [logA, logB])
         XCTAssertEqual(mapped.lastWateredAt, logB.timestamp)
         XCTAssertEqual(mapped.notes, "notes")
+        XCTAssertEqual(mapped.aiCareHints, ["Hint A", "Hint B"])
     }
 
     func testPlantEntityUsesLegacyLastWateredAsFallbackLogWhenDecodingEmptyLogs() {
@@ -72,6 +74,7 @@ final class PersistenceAndModelTests: XCTestCase {
             wateringIntervalDays: 9,
             checkIntervalDays: 5,
             notes: "updated",
+            aiCareHints: ["Updated hint"],
             aiConfidence: 0.5
         )
 
@@ -83,6 +86,7 @@ final class PersistenceAndModelTests: XCTestCase {
         XCTAssertEqual(entity.wateringIntervalDays, 9)
         XCTAssertEqual(entity.checkIntervalDays, 5)
         XCTAssertEqual(entity.notes, "updated")
+        XCTAssertEqual(entity.aiCareHintsData, try JSONEncoder().encode(["Updated hint"]))
         XCTAssertEqual(entity.aiConfidence, 0.5)
     }
 

@@ -24,6 +24,7 @@ public struct PlantRecord: Identifiable, Equatable, Sendable {
     public var nextWaterDueAt: Date
     public var nextCheckDueAt: Date
     public var notes: String
+    public var aiCareHints: [String]
     public var aiConfidence: Double?
 
     public init(
@@ -42,6 +43,7 @@ public struct PlantRecord: Identifiable, Equatable, Sendable {
         nextWaterDueAt: Date,
         nextCheckDueAt: Date,
         notes: String = "",
+        aiCareHints: [String] = [],
         aiConfidence: Double? = nil
     ) {
         self.id = id
@@ -59,6 +61,7 @@ public struct PlantRecord: Identifiable, Equatable, Sendable {
         self.nextWaterDueAt = nextWaterDueAt
         self.nextCheckDueAt = nextCheckDueAt
         self.notes = notes
+        self.aiCareHints = aiCareHints
         self.aiConfidence = aiConfidence
     }
 }

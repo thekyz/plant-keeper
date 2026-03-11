@@ -11,7 +11,7 @@ final class PlantDraftAndRowModelTests: XCTestCase {
             confidence: 0.91,
             suggestedWateringIntervalDays: 6,
             suggestedCheckIntervalDays: 2,
-            careHints: ["Bright light"]
+            careHints: ["Bright light", "Water when top soil feels dry"]
         )
 
         draft.applyAI(result)
@@ -20,6 +20,7 @@ final class PlantDraftAndRowModelTests: XCTestCase {
         XCTAssertEqual(draft.nameFrench, "Monstera FR")
         XCTAssertEqual(draft.wateringIntervalDays, 6)
         XCTAssertEqual(draft.checkIntervalDays, 2)
+        XCTAssertEqual(draft.aiCareHints, ["Bright light", "Water when top soil feels dry"])
         XCTAssertEqual(draft.aiConfidence, 0.91)
     }
 
@@ -27,6 +28,8 @@ final class PlantDraftAndRowModelTests: XCTestCase {
         var draft = PlantDraft()
         draft.nameEnglish = "Existing EN"
         draft.nameFrench = "Existing FR"
+        draft.notes = "Keep away from drafts"
+        draft.aiCareHints = ["Old hint"]
 
         draft.applyAI(
             AIAnalysisResult(
@@ -35,7 +38,7 @@ final class PlantDraftAndRowModelTests: XCTestCase {
                 confidence: 0.2,
                 suggestedWateringIntervalDays: 10,
                 suggestedCheckIntervalDays: 5,
-                careHints: []
+                careHints: ["New hint"]
             )
         )
 
@@ -43,6 +46,8 @@ final class PlantDraftAndRowModelTests: XCTestCase {
         XCTAssertEqual(draft.nameFrench, "Existing FR")
         XCTAssertEqual(draft.wateringIntervalDays, 10)
         XCTAssertEqual(draft.checkIntervalDays, 5)
+        XCTAssertEqual(draft.notes, "Keep away from drafts")
+        XCTAssertEqual(draft.aiCareHints, ["New hint"])
     }
 
     func testPlantDraftMakeRecordUsesProvidedIDAndDates() {
@@ -55,6 +60,7 @@ final class PlantDraftAndRowModelTests: XCTestCase {
         draft.wateringIntervalDays = 9
         draft.checkIntervalDays = 4
         draft.notes = "Test note"
+        draft.aiCareHints = ["Bright indirect light", "Rotate weekly"]
         draft.aiConfidence = 0.7
         draft.photoIdentifier = "draft-photo.jpg"
 
@@ -66,6 +72,7 @@ final class PlantDraftAndRowModelTests: XCTestCase {
         XCTAssertEqual(record.photoIdentifier, "draft-photo.jpg")
         XCTAssertEqual(record.nameEnglish, "Aloe")
         XCTAssertEqual(record.notes, "Test note")
+        XCTAssertEqual(record.aiCareHints, ["Bright indirect light", "Rotate weekly"])
         XCTAssertEqual(record.aiConfidence, 0.7)
         XCTAssertEqual(
             record.nextWaterDueAt,
@@ -139,5 +146,18 @@ final class PlantDraftAndRowModelTests: XCTestCase {
         let row = PlantRowViewModel(plant: plant, urgency: urgency, preferredPlantNameLanguage: .french)
 
         XCTAssertEqual(row.displayName, "Menthe")
+    }
+
+    func testPlantRowViewModelSummarizesAICareHints() {
+        let now = Date()
+        let plant = TestFixture.makePlant(
+            nextWaterDueAt: now.addingTimeInterval(86_400),
+            nextCheckDueAt: now.addingTimeInterval(43_200),
+            aiCareHints: ["Bright indirect light", "Let top soil dry", "Rotate pot weekly"]
+        )
+        let urgency = UrgencyEngine().score(for: plant, now: now)
+        let row = PlantRowViewModel(plant: plant, urgency: urgency, preferredPlantNameLanguage: .english)
+
+        XCTAssertEqual(row.careRecommendationSummary, "Bright indirect light • Let top soil dry +1 more")
     }
 }

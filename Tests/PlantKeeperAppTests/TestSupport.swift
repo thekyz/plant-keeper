@@ -179,6 +179,7 @@ enum TestFixture {
         nextWaterDueAt: Date = Date(timeIntervalSince1970: 1_000_000),
         nextCheckDueAt: Date = Date(timeIntervalSince1970: 1_000_000),
         notes: String = "",
+        aiCareHints: [String] = [],
         aiConfidence: Double? = nil
     ) -> PlantRecord {
         PlantRecord(
@@ -197,6 +198,7 @@ enum TestFixture {
             nextWaterDueAt: nextWaterDueAt,
             nextCheckDueAt: nextCheckDueAt,
             notes: notes,
+            aiCareHints: aiCareHints,
             aiConfidence: aiConfidence
         )
     }

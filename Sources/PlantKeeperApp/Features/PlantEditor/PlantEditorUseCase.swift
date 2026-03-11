@@ -55,6 +55,7 @@ actor PlantEditorUseCase {
         draft.wateringIntervalDays = plant.wateringIntervalDays
         draft.checkIntervalDays = plant.checkIntervalDays
         draft.notes = plant.notes
+        draft.aiCareHints = plant.aiCareHints
         draft.aiConfidence = plant.aiConfidence
         return draft
     }

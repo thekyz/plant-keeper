@@ -26,6 +26,16 @@ struct PlantRowView: View {
                 Text("Water: \(row.nextWaterText) | Check: \(row.nextCheckText)")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+                if let careRecommendationSummary = row.careRecommendationSummary {
+                    HStack(alignment: .top, spacing: 6) {
+                        Image(systemName: "leaf.circle.fill")
+                            .foregroundStyle(.green)
+                        Text(careRecommendationSummary)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    }
+                }
                 Text(row.urgencyBadge)
                     .font(.caption)
                     .padding(.horizontal, 8)

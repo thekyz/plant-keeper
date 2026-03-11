@@ -19,6 +19,7 @@ final class PlantEntity {
     var nextWaterDueAt: Date
     var nextCheckDueAt: Date
     var notes: String
+    var aiCareHintsData: Data?
     var aiConfidence: Double?
 
     init(from record: PlantRecord) {
@@ -37,6 +38,7 @@ final class PlantEntity {
         self.nextWaterDueAt = record.nextWaterDueAt
         self.nextCheckDueAt = record.nextCheckDueAt
         self.notes = record.notes
+        self.aiCareHintsData = Self.encodeCareHints(record.aiCareHints)
         self.aiConfidence = record.aiConfidence
     }
 
@@ -55,6 +57,7 @@ final class PlantEntity {
         nextWaterDueAt = record.nextWaterDueAt
         nextCheckDueAt = record.nextCheckDueAt
         notes = record.notes
+        aiCareHintsData = Self.encodeCareHints(record.aiCareHints)
         aiConfidence = record.aiConfidence
     }
 
@@ -83,6 +86,7 @@ final class PlantEntity {
             nextWaterDueAt: nextWaterDueAt,
             nextCheckDueAt: nextCheckDueAt,
             notes: notes,
+            aiCareHints: Self.decodeCareHints(aiCareHintsData),
             aiConfidence: aiConfidence
         )
     }
@@ -95,5 +99,15 @@ final class PlantEntity {
     private static func decodeWateringLogs(_ data: Data?) -> [WateringLog] {
         guard let data else { return [] }
         return (try? JSONDecoder().decode([WateringLog].self, from: data)) ?? []
+    }
+
+    private static func encodeCareHints(_ careHints: [String]) -> Data? {
+        guard !careHints.isEmpty else { return nil }
+        return try? JSONEncoder().encode(careHints)
+    }
+
+    private static func decodeCareHints(_ data: Data?) -> [String] {
+        guard let data else { return [] }
+        return (try? JSONDecoder().decode([String].self, from: data)) ?? []
     }
 }
